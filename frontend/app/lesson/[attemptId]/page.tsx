@@ -2,11 +2,10 @@
 
 import { use } from 'react'
 
-import { LessonHandoff } from '@/components/lesson/lesson-handoff'
+import { LessonPlayer } from '@/components/lesson/lesson-player'
 
 /**
  * Focused lesson layout — no learner shell navigation.
- * Phase 9A handoff only; full player in Phase 10A.
  */
 export default function LessonPage({
   params,
@@ -31,7 +30,7 @@ export default function LessonPage({
 
   return (
     <main className="min-h-screen bg-lq-bg-page text-lq-text-primary">
-      <LessonHandoff attemptId={attemptId} />
+      <LessonPlayer attemptId={attemptId} />
     </main>
   )
 }

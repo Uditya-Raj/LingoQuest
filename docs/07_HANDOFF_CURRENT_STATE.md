@@ -38,13 +38,13 @@ when its exit checks in `/docs/06_IMPLEMENTATION_PHASES.md` pass.
 |---|---|
 | Product | LingoQuest |
 | Repository state | `INSPECTED` |
-| Current phase | Phase 9B — Learning-path visual composition |
+| Current phase | Phase 10A — Lesson shell and session state machine |
 | Current phase status | `VERIFIED` |
-| Next action | Phase 10A — Lesson shell and state machine |
+| Next action | Phase 10B — Five exercise components |
 | Recommended model | Claude Sonnet |
-| Required skill | None |
+| Required skill | None (Phase 10B: Sonnet, no skill) |
 | Last updated | 2026-07-19 |
-| Updated by | Phase 9B screenshot re-verification + visual fixes |
+| Updated by | Phase 10A lesson shell + state machine implementation |
 | Active blocker | None |
 
 ---
@@ -109,20 +109,162 @@ verified.
 | 3D design system and primitives | `VERIFIED` | Phase 8C: complete token system, 15 primitives, theme system, Quest mascot, 67 tests. |
 | Learning path UI | `VERIFIED` | Phase 9A functional + Phase 9B visual composition. |
 | Learning path visual polish | `VERIFIED` | Phase 9B: winding S-curve, SVG connectors, 4 state hierarchy, unit banners, gamification bar, skill detail, Quest fox, responsive, dark mode. Re-verified with inspected screenshots. |
-| Lesson player and five exercise UIs | `NOT_STARTED` | Phase 9A handoff retrieves attempt only; full player is Phase 10A. |
-| Feedback/failure/completion UI | `NOT_STARTED` | Not implemented. |
+| Lesson player shell and state machine | `VERIFIED` | Phase 10A: pure reducer, `useLessonSession` controller, focused layout, header/progress/hearts/exit, placeholder renderer boundary, answer/feedback/continue/complete orchestration, failed/completed/error surfaces, timed-mode retrieve boundary. |
+| Five exercise renderers | `NOT_STARTED` | Phase 10B — dedicated MC/word-bank/match/fill/type components. |
+| Feedback/failure/completion UI polish | `PARTIAL` | Phase 10A: basic `FeedbackSurface`, failed/completed placeholders; celebratory polish deferred to Phase 10C (Opus + frontend-design). |
 | Profile/leaderboard/settings UI | `PARTIAL` | Shell + nav live; page bodies still deferred placeholders (not path/skill). |
 | Content manager UI | `NOT_STARTED` | Placeholder `/admin/content` only. Admin nav omitted until profile exposes `is_content_admin`. |
 | Responsive accessibility | `PARTIAL` | Path/shell keyboard, focus, reduced-motion, 44px targets, no mobile overflow after fix. Full audit in Phase 13. |
 | Dark mode bonus | `PARTIAL` | Theme toggle on settings; path/shell use tokens in light/dark; node icons fixed to white on brand surfaces. Full polish Phase 14. |
-| Automated test suite | `VERIFIED` | Backend **198 passed** (prior). Frontend Vitest **98 passed** (Phase 9B re-run). |
-| Production builds | `VERIFIED` | Frontend `next build` passed (Phase 9B); backend LingoQuest API on `:8000`. |
+| Automated test suite | `VERIFIED` | Backend **198 passed** (prior). Frontend Vitest **130 passed** (Phase 10A). |
+| Production builds | `VERIFIED` | Frontend `next build` passed (Phase 10A); backend LingoQuest API on `:8000`. |
 | Deployment and persistent SQLite | `NOT_STARTED` | Deferred; deployment spec missing. |
 | README and submission evidence | `NOT_STARTED` | No `README.md` exists. |
 
 ---
 
 ## Current phase contract
+
+### Phase
+
+Phase 10A — Lesson shell and session state machine
+
+### Objective
+
+Replace the Phase 9A retrieve-only handoff with a robust lesson-player shell and pure,
+testable session state machine covering retrieve/refresh/resume, answer submission,
+feedback/continue, completion, failure, exit confirmation, and stale-response protection.
+
+### Model and skill used
+
+**Model:** Claude Sonnet (normal mode)
+**Skill:** `frontend-design` — loaded to preserve Phase 8C tokens/primitives only; no redesign.
+
+### API contracts orchestrated (exact fields from Phase 8A contracts)
+
+| Endpoint | Key fields used |
+|---|---|
+| `GET /api/lessons/{attempt_id}` | `attempt_id`, `mode`, `status`, `current_index`, `total_exercises`, `hearts`, `max_hearts`, `expires_at`, `remaining_seconds`, `exercises[]` (public only), `terminal_summary` |
+| `POST /api/lessons/{attempt_id}/answer` | Request: `exercise_id`, `position`, typed `answer`. Response: `is_correct`, `correct_answer`, `hearts_remaining`, `lesson_status`, `can_complete`, `current_index` |
+| `POST /api/lessons/{attempt_id}/complete` | Full `CompletionResponse` stored verbatim (`xp`, `streak`, `skill`, `user_totals`, etc.) |
+
+Public retrieve never exposes `correct_answer`. Solution shown only from answer response.
+
+### State machine
+
+**States:** `loading`, `ready`, `submitting`, `feedback`, `completing`, `completed`, `failed`, `error`
+
+**Events:** `LOAD`, `LOAD_SUCCESS`, `LOAD_FAILURE`, `SUBMIT_ANSWER`, `ANSWER_SUCCESS`, `ANSWER_FAILURE`, `CONTINUE`, `BEGIN_COMPLETION`, `COMPLETION_SUCCESS`, `COMPLETION_FAILURE`, `RETRY_READ`, `DISMISS_ERROR`
+
+Pure reducer in `frontend/lib/lesson/session-state-machine.ts` — no fetch/router/timestamps inside reducer.
+
+### Components and hooks added
+
+| Path | Purpose |
+|---|---|
+| `lib/lesson/session-types.ts` | Discriminated union types |
+| `lib/lesson/session-state-machine.ts` | Pure reducer + selectors |
+| `lib/lesson/format-solution.ts` | Basic feedback solution formatting |
+| `hooks/use-lesson-session.ts` | API orchestration, stale-response guards, session-store sync |
+| `components/lesson/lesson-player.tsx` | Main shell wiring |
+| `components/lesson/lesson-layout.tsx` | Focused layout with sticky header + bottom actions |
+| `components/lesson/lesson-header.tsx` | Exit, title, progress, hearts |
+| `components/lesson/lesson-progress.tsx` | Backend index/total progress bar |
+| `components/lesson/lesson-hearts.tsx` | Backend hearts display |
+| `components/lesson/lesson-exit-control.tsx` | Exit confirmation modal |
+| `components/lesson/lesson-feedback-region.tsx` | Feedback + Continue/Complete |
+| `components/lesson/lesson-surfaces.tsx` | Loading/error/timed notice |
+| `components/lesson/lesson-completed-surface.tsx` | Restrained completion placeholder |
+| `components/lesson/lesson-failed-surface.tsx` | Failed terminal surface (hearts vs time_expired) |
+| `components/lesson/exercise-renderer-types.ts` | Strict renderer contract for Phase 10B |
+| `components/lesson/placeholder-exercise-renderer.tsx` | Production placeholder (no fabricated submits) |
+
+Removed: `components/lesson/lesson-handoff.tsx` (replaced by `LessonPlayer`).
+
+### Test counts (130 total frontend)
+
+| Test file | Tests | Coverage |
+|---|---|---|
+| `tests/lesson/session-state-machine.test.ts` | 16 | All legal/illegal reducer transitions |
+| `tests/hooks/use-lesson-session.test.ts` | 12 | Controller retrieve/submit/complete journey, stale abort, timed, unmount |
+| `tests/components/lesson-player.test.tsx` | 9 | Shell a11y labels, exit modal, terminal states, placeholder guard |
+| Prior suites (path, primitives, stores, client, etc.) | 93 | Unchanged/regression green |
+
+Fixtures: `tests/fixtures/phase10a.ts`
+
+### Isolated journey verification (mocked API)
+
+1. Retrieve in-progress attempt — **pass**
+2. Submit typed answer — **pass**
+3. Receive backend feedback — **pass**
+4. Continue — **pass**
+5. Final exercise → complete once — **pass**
+6. Wrong answer applies backend hearts — **pass**
+7. Zero-heart failure, no completion call — **pass**
+8. Refresh resumes backend index — **pass**
+
+No mutations against real attempt 143.
+
+### Real-backend read-only verification (attempt 143)
+
+| Check | Result |
+|---|---|
+| `GET /api/lessons/143` | **200** |
+| `status` | `in_progress` (unchanged) |
+| `mode` | `standard` |
+| `current_index` | `0` (unchanged) |
+| Exercise order | 10 public exercises preserved |
+| `correct_answer` in payload | **absent** |
+| Exit confirmation UI | Exercised in component test (cancel preserves session; no destructive mutation) |
+
+### Quality gates
+
+| Gate | Result |
+|---|---|
+| `npm run test` | **130 passed** |
+| `npm run typecheck` | **pass** |
+| `npm run lint` | **pass** |
+| `npm run build` | **pass** (Next.js 15.5.20) |
+| `any` / `@ts-ignore` in lesson code | **0** |
+| `LingoPath` | **0** |
+| Hardcoded API URLs in lesson code | **0** (uses `lib/config`) |
+| `correct_answer` from retrieve | **0** (answer response only) |
+| Local XP/hearts/streak/crown math | **0** |
+| Auto mutation retries | **0** |
+| `POST /start` from lesson route | **0** |
+| Lesson state in localStorage | **0** |
+
+### Visual viewports inspected
+
+Code review against Phase 8C tokens for focused shell structure (header, progress, hearts, exercise slot, bottom actions, exit modal, safe-area padding, max-w-lq-narrow). Full screenshot pass deferred to Phase 10C/14; layout uses responsive sticky regions and `100dvh` with bottom action reserve.
+
+### Accessibility (Phase 10A)
+
+- Lesson loading `aria-busy` / `aria-label`
+- Progress `role="progressbar"` with exercise label
+- Hearts `aria-label` (“N of M hearts”)
+- Exit control accessible name
+- Feedback `aria-live` via `FeedbackSurface`
+- Modal focus trap + Escape (reused `Modal`)
+- Touch targets ≥44px on exit/check/continue
+- Reduced motion via existing token/CSS globals
+
+### Remaining risks
+
+- Production placeholder disables Check until Phase 10B renderers supply valid drafts
+- Timed live countdown not implemented (intentional notice only)
+- Final celebration, out-of-hearts refill modal, and exercise-specific feedback polish → Phase 10C
+- Full responsive screenshot QA → Phase 14
+
+### Exact next phase
+
+**Phase 10B — Five exercise components** (`/docs/06_IMPLEMENTATION_PHASES.md`)
+**Model:** Claude Sonnet
+**Skill:** None
+
+---
+
+## Phase 9B contract (historical — VERIFIED)
 
 ### Phase
 
@@ -216,6 +358,13 @@ dev indicator, not product UI.
 
 | Date | Category | Command | Result | Notes |
 |---|---|---|---|---|
+| 2026-07-19 | Phase 10A unit | `cd frontend; npm run test` | **130 passed** | +32 new lesson/reducer/controller/shell tests |
+| 2026-07-19 | Phase 10A typecheck | `cd frontend; npm run typecheck` | **pass** | Clean |
+| 2026-07-19 | Phase 10A lint | `cd frontend; npm run lint` | **pass** | No ESLint warnings or errors |
+| 2026-07-19 | Phase 10A build | `cd frontend; npm run build` | **pass** | Next.js 15.5.20; `/lesson/[attemptId]` 7.95 kB |
+| 2026-07-19 | Phase 10A quality | `any` / `@ts-ignore` / `LingoPath` in lesson code | **0** | `expect.any` only in tests |
+| 2026-07-19 | Phase 10A quality | retrieve `correct_answer` / local gamification | **0** | Answer response only for solutions |
+| 2026-07-19 | Phase 10A smoke | `GET /api/lessons/143` (read-only ×2) | **200** | `in_progress`, standard, index 0; 10 exercises; no `correct_answer` |
 | 2026-07-19 | Phase 9B unit | `cd frontend; npm run test` | **98 passed** | Re-run after sticky CTA / dark icon fixes |
 | 2026-07-19 | Phase 9B typecheck | `cd frontend; npm run typecheck` | **pass** | Clean |
 | 2026-07-19 | Phase 9B lint | `cd frontend; npm run lint` | **pass** | No ESLint warnings or errors |
