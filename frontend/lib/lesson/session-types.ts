@@ -83,6 +83,11 @@ export type LessonSessionEvent =
       type: 'ANSWER_FAILURE'
       error: SessionError
     }
+  | {
+      type: 'TIME_EXPIRED'
+      /** Optional refreshed attempt after backend adjudication. */
+      attempt?: LessonAttemptResponse
+    }
   | { type: 'CONTINUE' }
   | { type: 'BEGIN_COMPLETION' }
   | { type: 'COMPLETION_SUCCESS'; completion: CompletionResponse }

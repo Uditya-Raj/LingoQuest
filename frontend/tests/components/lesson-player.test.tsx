@@ -125,18 +125,17 @@ describe('LessonPlayer shell', () => {
     expect(screen.getByRole('radio', { name: 'Hello' })).toBeInTheDocument()
   })
 
-  it('renders timed notice without failing locally', async () => {
+  it('renders timed countdown without failing locally', async () => {
     getAttemptMock.mockResolvedValue(
       mockLessonAttempt({
         mode: 'timed',
         remaining_seconds: 88,
-        expires_at: '2026-07-19T13:00:00Z',
+        expires_at: new Date(Date.now() + 88_000).toISOString(),
       }),
     )
     renderWithToast(<LessonPlayer attemptId={9001} />)
-    expect(
-      await screen.findByText(/Timed Practice session/i),
-    ).toBeInTheDocument()
-    expect(screen.queryByRole('heading', { name: 'Time expired' })).not.toBeInTheDocument()
+    expect(await screen.findByText('Timed Practice')).toBeInTheDocument()
+    expect(screen.getByRole('timer')).toBeInTheDocument()
+    expect(screen.queryByRole('heading', { name: /Time's up/i })).not.toBeInTheDocument()
   })
 })

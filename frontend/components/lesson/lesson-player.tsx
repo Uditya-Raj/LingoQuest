@@ -12,13 +12,14 @@ import { LessonLayout } from '@/components/lesson/lesson-layout'
 import {
   LessonErrorSurface,
   LessonLoadingSurface,
-  LessonTimedNotice,
 } from '@/components/lesson/lesson-surfaces'
+import { LessonTimedCompletedSurface } from '@/components/lesson/lesson-timed-completed-surface'
 import { exerciseRenderer } from '@/components/lesson/exercise-renderer'
 import { Button3D } from '@/components/ui/button-3d'
 import { QuestMascot } from '@/components/ui/quest-mascot'
 import { useToast } from '@/components/ui/toast'
 import { useLessonSession } from '@/hooks/use-lesson-session'
+import { useTimedLessonClock } from '@/hooks/use-timed-lesson-clock'
 import { cancelActiveLessonAudio } from '@/lib/audio/lesson-audio-controller'
 import type { SubmittedAnswer } from '@/lib/contracts/exercises'
 
@@ -39,6 +40,39 @@ export function LessonPlayer({
   const [draftAnswer, setDraftAnswer] = useState<SubmittedAnswer | null>(null)
   const [confirmExitOpen, setConfirmExitOpen] = useState(false)
   const mutationToastKeyRef = useRef<string | null>(null)
+
+  const attemptForClock =
+    state.status === 'ready' ||
+    state.status === 'submitting' ||
+    state.status === 'feedback' ||
+    state.status === 'completing'
+      ? state.attempt
+      : null
+
+  const checkExpiry = session.checkExpiry
+  const confirmExpiry = useCallback(async () => {
+    const result = await checkExpiry()
+    if (result.outcome === 'expired') {
+      return { outcome: 'expired' as const }
+    }
+    if (result.outcome === 'in_progress') {
+      return {
+        outcome: 'in_progress' as const,
+        remainingSeconds: result.remainingSeconds,
+        expiresAt: result.expiresAt,
+      }
+    }
+    return { outcome: 'error' as const }
+  }, [checkExpiry])
+
+  const timedClock = useTimedLessonClock({
+    mode: attemptForClock?.mode,
+    expiresAt: attemptForClock?.expires_at,
+    remainingSeconds: attemptForClock?.remaining_seconds,
+    attemptId: attemptForClock?.attempt_id,
+    enabled: attemptForClock?.status === 'in_progress',
+    confirmExpiry,
+  })
 
   const activeExercise =
     state.status === 'ready' || state.status === 'submitting'
@@ -80,23 +114,27 @@ export function LessonPlayer({
     return renderer.buildSubmitPayload(activeExercise, draftAnswer)
   }, [activeExercise, draftAnswer, renderer, state.status])
 
+  const interactionBlocked = timedClock.blocksInteraction
+
   const canPressCheck =
     session.canSubmit &&
+    !interactionBlocked &&
     submitPayload !== null &&
     activeExercise !== null &&
     renderer.isDraftValid(activeExercise, draftAnswer)
 
   const handleSubmit = useCallback(() => {
-    if (submitPayload === null) return
+    if (submitPayload === null || interactionBlocked) return
     // Cancel speech on Check so feedback announcements are not overlapping.
     cancelActiveLessonAudio()
     session.submitCurrentAnswer(submitPayload)
-  }, [session, submitPayload])
+  }, [interactionBlocked, session, submitPayload])
 
   const handleContinue = useCallback(() => {
+    if (interactionBlocked) return
     cancelActiveLessonAudio()
     session.continueLesson()
-  }, [session])
+  }, [interactionBlocked, session])
 
   const handleConfirmExit = useCallback(() => {
     cancelActiveLessonAudio()
@@ -121,6 +159,12 @@ export function LessonPlayer({
     }
   }, [state.status])
 
+  useEffect(() => {
+    if (timedClock.isBackendExpired) {
+      cancelActiveLessonAudio()
+    }
+  }, [timedClock.isBackendExpired])
+
   if (state.status === 'loading') {
     return <LessonLoadingSurface />
   }
@@ -139,6 +183,16 @@ export function LessonPlayer({
   }
 
   if (state.status === 'completed') {
+    if (state.attempt.mode === 'timed') {
+      return (
+        <LessonTimedCompletedSurface
+          skillTitle={state.attempt.skill_title}
+          skillId={state.attempt.skill_id}
+          completed={state.completed}
+          mistakesCount={state.attempt.mistakes_count}
+        />
+      )
+    }
     return (
       <LessonCompletedSurface
         skillTitle={state.attempt.skill_title}
@@ -169,6 +223,7 @@ export function LessonPlayer({
         : null
   const Renderer = renderer.Component
   const showActionBar = state.status === 'ready' || state.status === 'submitting'
+  const isTimed = attempt.mode === 'timed'
 
   return (
     <LessonLayout
@@ -177,17 +232,22 @@ export function LessonPlayer({
           skillTitle={attempt.skill_title}
           mode={attempt.mode}
           progress={session.progress}
-          hearts={session.hearts}
+          hearts={isTimed ? null : session.hearts}
+          timedClock={
+            isTimed
+              ? {
+                  phase: timedClock.phase,
+                  displayLabel: timedClock.displayLabel,
+                  accessibleLabel: timedClock.accessibleLabel,
+                  announcement: timedClock.announcement,
+                }
+              : null
+          }
           confirmExitOpen={confirmExitOpen}
           onRequestExit={() => setConfirmExitOpen(true)}
           onConfirmExit={handleConfirmExit}
           onCancelExit={() => setConfirmExitOpen(false)}
         />
-      }
-      banner={
-        attempt.mode === 'timed' ? (
-          <LessonTimedNotice remainingSeconds={attempt.remaining_seconds} />
-        ) : undefined
       }
       exercise={
         activeExercise && state.status !== 'completing' ? (
@@ -195,7 +255,7 @@ export function LessonPlayer({
             exercise={activeExercise}
             draftAnswer={draftAnswer}
             onDraftChange={setDraftAnswer}
-            disabled={!session.canSubmit}
+            disabled={!session.canSubmit || interactionBlocked}
             isSubmitting={session.isSubmitting}
             onRequestCheck={canPressCheck ? handleSubmit : undefined}
             feedback={
@@ -214,7 +274,9 @@ export function LessonPlayer({
             aria-busy="true"
           >
             <QuestMascot variant="celebrating" size={72} decorative />
-            <p className="text-lq-lg font-extrabold">Wrapping up your quest…</p>
+            <p className="text-lq-lg font-extrabold">
+              {isTimed ? 'Confirming Timed Practice…' : 'Wrapping up your quest…'}
+            </p>
             <p className="text-lq-sm text-lq-text-secondary">
               Confirming XP and progress with the server.
             </p>
@@ -227,6 +289,11 @@ export function LessonPlayer({
             {session.mutationError ? (
               <p className="text-lq-sm font-bold text-lq-text-error" role="alert">
                 {session.mutationError.message}
+              </p>
+            ) : null}
+            {timedClock.isCheckingExpiry ? (
+              <p className="text-lq-sm font-bold text-lq-text-secondary" aria-live="polite">
+                Checking time…
               </p>
             ) : null}
             <Button3D
@@ -247,7 +314,9 @@ export function LessonPlayer({
             answerResult={feedbackState.answerResult}
             answeredExercise={feedbackState.answeredExercise}
             showHearts={attempt.mode === 'standard'}
-            canContinue={session.canContinue || session.isCompleting}
+            canContinue={
+              (session.canContinue || session.isCompleting) && !interactionBlocked
+            }
             isCompleting={session.isCompleting}
             mutationError={session.mutationError?.message ?? null}
             onContinue={handleContinue}

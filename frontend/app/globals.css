@@ -299,6 +299,16 @@
   animation: lq-heart-loss 420ms ease-out;
 }
 
+@keyframes lq-timed-critical {
+  0%,
+  100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.04);
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .lq-available-pulse {
     animation: none !important;
@@ -306,6 +316,10 @@
 
   .lq-celebration-spark,
   .lq-heart-loss {
+    animation: none !important;
+  }
+
+  .motion-safe\:animate-\[lq-timed-critical_1s_ease-in-out_infinite\] {
     animation: none !important;
   }
 }

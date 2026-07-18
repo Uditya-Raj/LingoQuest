@@ -5,7 +5,6 @@ import Link from 'next/link'
 import { Button3D } from '@/components/ui/button-3d'
 import { QuestMascot } from '@/components/ui/quest-mascot'
 import { Skeleton } from '@/components/ui/skeleton'
-import { SurfaceCard } from '@/components/ui/surface-card'
 
 export function LessonLoadingSurface() {
   return (
@@ -61,22 +60,3 @@ export function LessonErrorSurface({
   )
 }
 
-interface LessonTimedNoticeProps {
-  remainingSeconds: number | null
-}
-
-export function LessonTimedNotice({ remainingSeconds }: LessonTimedNoticeProps) {
-  return (
-    <SurfaceCard className="mb-4 border-lq-timed/30 bg-lq-timed/5 p-4">
-      <p className="text-lq-sm font-bold text-lq-text-primary">
-        Timed Practice session
-      </p>
-      <p className="mt-1 text-lq-sm text-lq-text-secondary">
-        Live countdown and timed interactions arrive in a later update. This
-        shell retrieves your timed attempt
-        {remainingSeconds !== null ? ` (${remainingSeconds}s remaining on server)` : ''}{' '}
-        without failing locally.
-      </p>
-    </SurfaceCard>
-  )
-}

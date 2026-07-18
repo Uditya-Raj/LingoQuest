@@ -38,13 +38,13 @@ when its exit checks in `/docs/06_IMPLEMENTATION_PHASES.md` pass.
 |---|---|
 | Product | LingoQuest |
 | Repository state | `INSPECTED` |
-| Current phase | Phase 10D — Exercise audio and TTS frontend |
+| Current phase | Phase 10E — Timed-practice frontend flow |
 | Current phase status | `VERIFIED` |
-| Next action | Phase 10E — Timed-practice frontend flow |
+| Next action | Phase 11A — Profile, leaderboard, achievements, and settings |
 | Recommended model | Claude Sonnet |
 | Required skill | None |
 | Last updated | 2026-07-19 |
-| Updated by | Phase 10D accessible exercise audio / browser TTS |
+| Updated by | Phase 10E Timed Practice frontend |
 | Active blocker | None |
 
 ---
@@ -113,12 +113,13 @@ verified.
 | Five exercise renderers | `VERIFIED` | Phase 10B: production `exerciseRenderer` dispatches MC/word-bank/match/fill/type; exact payloads; draft reset; locked during submit/feedback; attempt 143 read-only preserved. |
 | Feedback/failure/completion UI polish | `VERIFIED` | Phase 10C: dimensional feedback, solution formatting, out-of-hearts modal + refill/retry, results celebration, toasts, reduced motion. |
 | Exercise audio / browser TTS | `VERIFIED` | Phase 10D: Play/Replay via Speech Synthesis; audio_url preferred when present; lifecycle cancel; all five types via ExerciseFrame. |
+| Timed practice frontend | `VERIFIED` | Phase 10E: expires_at countdown, GET adjudication, five exercises, timed results, time-expired modal, standard regression. |
 | Profile/leaderboard/settings UI | `PARTIAL` | Shell + nav live; page bodies still deferred placeholders (not path/skill). |
 | Content manager UI | `NOT_STARTED` | Placeholder `/admin/content` only. Admin API already exposes TTS fields (Phase 7C); form UI remains Phase 11B. |
-| Responsive accessibility | `PARTIAL` | Lesson audio + feedback inspected at 320/390/1440 + 200% zoom; full audit in Phase 13. |
-| Dark mode bonus | `PARTIAL` | Theme toggle on settings; lesson audio dark captures taken in Phase 10D (lesson theme wiring polish may remain for Phase 14). |
-| Automated test suite | `VERIFIED` | Backend **198 passed** (prior). Frontend Vitest **188 passed** (Phase 10D). |
-| Production builds | `VERIFIED` | Frontend `next build` passed (Phase 10D); backend LingoQuest API on `:8000`. |
+| Responsive accessibility | `PARTIAL` | Timed + lesson UI inspected at 320/390/1280 + 200% zoom; full audit in Phase 13. |
+| Dark mode bonus | `PARTIAL` | Theme toggle on settings; timed critical dark capture taken in Phase 10E (polish may remain for Phase 14). |
+| Automated test suite | `VERIFIED` | Backend timed journeys **16 passed** (7C+6B subset). Frontend Vitest **216 passed** (Phase 10E). |
+| Production builds | `VERIFIED` | Frontend `next build` passed (Phase 10E); backend LingoQuest API on `:8000`. |
 | Deployment and persistent SQLite | `NOT_STARTED` | Deferred; deployment spec missing. |
 | README and submission evidence | `NOT_STARTED` | No `README.md` exists. |
 
@@ -128,147 +129,160 @@ verified.
 
 ### Phase
 
-Phase 10D — Exercise audio and TTS frontend
+Phase 10E — Timed-practice frontend flow
 
 ### Objective
 
-Accessible Play/Replay exercise audio using browser Speech Synthesis (`tts_text` + `tts_lang`)
-with optional `audio_url` precedence, shared across all five exercise types, without mutating
-learner progress or interfering with Check/Continue.
+Complete backend-authoritative Timed Practice using the shared five exercise renderers, with an
+`expires_at` presentation countdown, GET-based expiry adjudication, timed success results (20 XP),
+and a distinct time-expired terminal modal — without redesigning the standard lesson player.
 
 ### Model and skill used
 
 **Model:** Claude Sonnet (normal mode)
-**Skill:** None (reused Phase 8C `IconButton3D` + Phase 10C lesson composition)
+**Skill:** None (reused Phase 8C primitives + Phase 10A–10D lesson composition)
 
-### Audio architecture
+### Timed API contracts inspected (no invention)
+
+| Field | Source | Notes |
+|---|---|---|
+| `mode` | start-timed / GET attempt | `"timed"` \| `"standard"` |
+| `expires_at` | start-timed / GET | UTC ISO; absolute expiry |
+| `remaining_seconds` | start-timed / GET | Server floor countdown; used for skew only |
+| `status` | GET / answer / complete | `in_progress` \| `completed` \| `failed` |
+| `failure_reason` | terminal / TIME_EXPIRED details | `time_expired` \| `out_of_hearts` |
+| `hearts` / `hearts_remaining` | GET / answer | Displayed; timed wrong answers do not consume |
+| `mistakes_count` | GET / answer | Increments on wrong answers in both modes |
+| Completion XP | POST complete | Timed: fixed **20** (`perfect_bonus=0`) |
+| Equality | Backend `_is_timed_expired` | `now == expires_at` playable; `now > expires_at` expired |
+
+**Adjudication:** `GET /api/lessons/{attempt_id}` (also answer/complete) fails expired attempts.
+No `server_now` or dedicated expiry endpoint. **No contract gap** — display zero triggers GET.
+
+### Timer architecture
 
 | Piece | Role |
 |---|---|
-| `lib/audio/resolve-audio-source.ts` | Prefer valid `audio_url`; else complete TTS pair; else hidden |
-| `lib/audio/speech-config.ts` | Rate 0.95 / pitch 1 / volume 1; BCP 47 + Duolingo URL rejection |
-| `lib/audio/voice-selection.ts` | Exact lang → base lang → browser default (`utterance.lang` retained) |
-| `lib/audio/support.ts` | SSR-safe support detection (no module-init `window` access) |
-| `lib/audio/lesson-audio-controller.ts` | Lesson-scoped cancel registry |
-| `hooks/use-speech-synthesis.ts` | Utterance lifecycle + stale-callback guard |
-| `hooks/use-html-audio.ts` | `HTMLAudioElement` Play/Replay for `audio_url` |
-| `hooks/use-exercise-audio.ts` | Unified source + UI status |
-| `components/lesson/exercise-audio-control.tsx` | Accessible Play/Replay / unsupported fallback |
-| `ExerciseFrame` audio slot | Shared wiring for all five renderers |
+| `lib/lesson/timed-clock.ts` | Pure UTC parse, skew, remaining, phases, threshold announce helpers |
+| `hooks/use-timed-lesson-clock.ts` | Single 250ms interval; absolute recalculation; cleanup on unmount/attempt change |
+| `components/lesson/timed-countdown.tsx` | `role="timer"`, tabular digits, warning/critical/checking/expired cues |
+| `useLessonSession.checkExpiry` | GET attempt; dispatch `TIME_EXPIRED` only on backend failure |
 
-### Voice-selection policy
+Rules: no fresh 120s on mount; no localStorage countdown; ticks never mutate the attempt;
+background-tab jumps catch up via absolute `expires_at`.
 
-1. Exact language match (e.g. `es-ES`)
-2. Same base language (any `es-*`)
-3. Browser default voice while retaining `utterance.lang`
+### Backend-authority behavior
 
-Voices load asynchronously via `voiceschanged` (listener cleaned up). No voice picker.
-Playback is never blocked waiting for voices.
+- Display `0:00` does **not** locally fail the attempt.
+- Brief `checking_expiry` + “Checking time…” / “Time is being checked” while GET runs.
+- Terminal only after backend `status=failed` + `failure_reason=time_expired` (or `TIME_EXPIRED` on answer/complete).
+- In-progress at equality preserves playability.
+- No fabricated answers or completion requests for expiry.
 
-### Play / Replay behavior
+### Threshold / accessibility policy
 
-- No autoplay
-- Control shown only for valid `audio_url` or complete `tts_text` + `tts_lang`
-- Never invent TTS text from the prompt
-- Accessible names: Play/Replay Spanish pronunciation
-- Speaking state uses text + optional waves (static under reduced motion)
-- Error: restrained live message; answering remains enabled
-- Unsupported: non-button fallback (no dead button)
+Announce once at 60 / 30 / 10 / 5 seconds; seed passed thresholds on refresh so they do not replay.
+Visual urgency uses icon + “Hurry!” / “Almost up” (not color alone). Critical pulse respects
+reduced motion. Timer sticky in header above mobile keyboard.
 
-### Lifecycle cleanup
+### Timed success and expiry UI
 
-Cancel on Check, Continue, attempt-id change, completing/completed/failed, confirmed exit,
-exercise identity change, and unmount.
+| Surface | Behavior |
+|---|---|
+| `LessonTimedCompletedSurface` | “Timed Practice complete”; exact response XP; no perfect/crown/unlock UI; streak/achievements only from response; contract-violation alert if `perfect_bonus` or unlocks returned |
+| `LessonTimeExpiredModal` | Distinct from out-of-hearts; no XP; no refill; Retry → `startTimedPractice`; Return to path |
+| Header (timed) | Exit + progress + countdown + Timed Practice label; hearts hidden |
 
-**Check decision:** cancel speech on Check so feedback announcements are not overlapping.
+### Standard-mode regression
 
-**Browser limitation:** `speechSynthesis.cancel()` is page-global.
+- Hearts header + loss animation remain for standard.
+- Out-of-hearts modal unchanged.
+- No timer on standard lessons.
+- Attempt **143** read-only: `status=in_progress`, `current_index=0`, `mode=standard`, no `correct_answer`.
 
-### audio_url decision
+### TTS integration
 
-Prefer playable original/licensed `audio_url` over TTS; reject Duolingo hosts. Seed currently
-has `audio_url = null` for all exercises (0 non-null). No third-party TTS or API keys.
-
-### Content-admin boundary
-
-Admin API retains `tts_text`/`tts_lang`/`audio_url` (Phase 7C verified). Content-admin form UI
-remains Phase 11B.
+Cancel on timed terminal (`failed`/`completed`/`completing`), expired modal mount, timed retry,
+and exit. Countdown ticks do not cancel audio. TTS remains on all five timed exercises (Play visible).
 
 ### Key files
 
 | Path | Purpose |
 |---|---|
-| `frontend/lib/audio/**` | Source resolution, voices, support, cancel registry |
-| `frontend/hooks/use-speech-synthesis.ts` | Speech Synthesis controller |
-| `frontend/hooks/use-html-audio.ts` | audio_url controller |
-| `frontend/hooks/use-exercise-audio.ts` | Unified exercise audio hook |
-| `frontend/components/lesson/exercise-audio-control.tsx` | Play/Replay UI |
-| `frontend/components/lesson/exercise-frame.tsx` | Shared TTS slot for five types |
-| `frontend/components/lesson/lesson-player.tsx` | Cancel on Check/Continue/exit/terminal |
-| `frontend/tests/helpers/mock-speech-synthesis.ts` | Focused speech mocks |
-| `frontend/tests/components/phase10d-exercise-audio.test.tsx` | Playback/cleanup/integration |
-| `frontend/scripts/phase10d-audio-screenshots.mjs` | Browser + screenshot QA |
+| `frontend/lib/lesson/timed-clock.ts` | Pure countdown helpers |
+| `frontend/hooks/use-timed-lesson-clock.ts` | Presentation clock controller |
+| `frontend/hooks/use-lesson-session.ts` | `checkExpiry` + `TIME_EXPIRED` handling |
+| `frontend/lib/lesson/session-state-machine.ts` | `TIME_EXPIRED` transition |
+| `frontend/components/lesson/timed-countdown.tsx` | Countdown UI |
+| `frontend/components/lesson/lesson-header.tsx` | Timed vs standard header |
+| `frontend/components/lesson/lesson-player.tsx` | Integration; blocks interaction while checking |
+| `frontend/components/lesson/lesson-timed-completed-surface.tsx` | Timed results |
+| `frontend/components/lesson/lesson-time-expired-modal.tsx` | Time-expired terminal |
+| `frontend/tests/lesson/timed-clock.test.ts` | Pure clock / boundary / thresholds |
+| `frontend/tests/hooks/use-timed-lesson-clock.test.ts` | Hook authority + cleanup |
+| `frontend/tests/components/phase10e-timed-practice.test.tsx` | Mode UI / completion / expiry |
+| `frontend/scripts/phase10e-timed-screenshots.mjs` | Visual QA (API mocked; no DB mutation) |
 
-### Test counts (188 total frontend)
+### Test counts (216 total frontend)
 
 | Suite | Tests | Coverage |
 |---|---|---|
-| `tests/components/phase10d-exercise-audio.test.tsx` | 19 | Support, playback, replay, voices, five types, Check cancel |
-| `tests/audio/resolve-audio-source.test.ts` | 5 | audio_url preference, invalid TTS, voice priority |
-| Phase 10C + prior suites | 164 | Regression green |
+| Phase 10E timed suites | ~28 | Clock, hook, UI, TIME_EXPIRED, regressions |
+| Prior (incl. 10D) | ~188 | Green |
 
 ### Quality gates
 
 | Command | Result |
 |---|---|
-| `npm run test` | **188 passed** |
+| `npm run test` | **216 passed** |
 | `npm run typecheck` | pass |
 | `npm run lint` | pass (0 warnings/errors) |
 | `npm run build` | pass |
 
-### TTS seed / API verification
+### Isolated backend journeys
 
-| Check | Result |
-|---|---|
-| Public TTS/audio fields nullable | Confirmed via OpenAPI `PublicExercise` |
-| Public omits `correct_answer` | Confirmed on attempt 143 |
-| Admin retains TTS fields | Confirmed via OpenAPI + content tree |
-| TTS ≥3 per skill | Greetings 4; others 3 each |
-| All five types TTS-capable | Yes (16 total) |
-| Seed `audio_url` non-null | 0 |
+`pytest tests/test_phase7c_acceptance.py::TestTimedPracticeJourney tests/test_phase6b_timed_api.py -q`
+→ **16 passed** on isolated migrated/seeded DBs:
 
-### Real-browser verification
-
-`node scripts/phase10d-audio-screenshots.mjs`: Play, Replay, `es-ES`, no autoplay, keyboard,
-unsupported fallback, no overflow — all pass. Audible device output not claimed (headless probe).
+- Successful timed: wrong answer keeps hearts; complete → exactly 20 XP; no crown/unlock change
+- Expiry + boundary: equality playable; after expiry → `time_expired`; no XP; hearts unchanged
+- Refresh preserves `expires_at` / order / remaining
 
 ### Attempt 143 read-only
 
-TTS controls rendered; Play allowed; no Check/answer/complete/fail. After QA:
-`status=in_progress`, `current_index=0`, no `correct_answer`.
+`GET /api/lessons/143` → `status=in_progress`, `current_index=0`, `mode=standard`, no public
+`correct_answer`. Not mutated by Phase 10E.
 
-### Screenshot viewports / states
+### Screenshot states / viewports
 
-`qa-screenshots/phase10d/`: 1440/390/320 light+dark Play/Speaking/unsupported; five-type TTS;
-200% zoom; reduced-motion path.
+`qa-screenshots/phase10e/`: normal 1280 light; warning 390; critical 320 dark; checking/0:00 1280;
+expired modal 390; success+achievement 1280; reduced-motion critical 390; 200% zoom 360.
+All `overflow=false`.
 
-### Accessibility verification
+### Contract gap / correction
 
-Real button + keyboard; ≥44px; visible focus; speaking not color-only; reduced-motion static
-indicator; error live region; unsupported non-blocking; audio never required; no autoplay.
+None. `remaining_seconds` + `expires_at` exist; GET adjudicates expiry.
 
 ### Remaining risks
 
-- Lesson-route dark theme polish may remain for Phase 14
-- Timed countdown UI deferred to Phase 10E
-- Content-admin TTS forms deferred to Phase 11B
-- Full a11y audit deferred to Phase 13
+- Brief `checking_expiry` flash is hard to screenshot (returns quickly when still in_progress)
+- Header “Timed” badge + countdown can feel tight at 320px (no overflow; polish in Phase 13/14)
+- Profile/leaderboard/settings bodies still deferred (Phase 11A)
+- Content-admin forms deferred (Phase 11B)
 
 ### Exact next phase
 
-**Phase 10E — Timed-practice frontend flow** (`/docs/06_IMPLEMENTATION_PHASES.md`)
+**Phase 11A — Profile, leaderboard, achievements, and settings** (`/docs/06_IMPLEMENTATION_PHASES.md`)
 **Model:** Claude Sonnet
-**Skill:** None
+**Skill:** None (reuse Phase 8C primitives)
+
+---
+
+## Phase 10D contract (historical — VERIFIED)
+
+Phase 10D delivered accessible Play/Replay exercise audio via Speech Synthesis with optional
+`audio_url` precedence, shared across all five types. See prior handoff evidence: 188 frontend
+tests, TTS lifecycle cancel, attempt 143 read-only, `qa-screenshots/phase10d/`.
 
 ---
 

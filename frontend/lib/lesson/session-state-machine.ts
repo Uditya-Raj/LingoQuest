@@ -239,6 +239,58 @@ export function lessonSessionReducer(
       return { ...readyState, status: 'ready' }
     }
 
+    case 'TIME_EXPIRED': {
+      if (
+        state.status !== 'ready' &&
+        state.status !== 'submitting' &&
+        state.status !== 'feedback' &&
+        state.status !== 'completing'
+      ) {
+        warnInvalidTransition(state.status, event.type)
+        return state
+      }
+
+      const attempt = event.attempt
+        ? {
+            ...event.attempt,
+            status: 'failed' as const,
+            terminal_summary: event.attempt.terminal_summary ?? {
+              outcome: 'failed' as const,
+              xp_earned: 0,
+              perfect: false,
+              failure_reason: 'time_expired' as const,
+              completed_at:
+                event.attempt.completed_at ?? new Date(0).toISOString(),
+            },
+          }
+        : {
+            ...state.attempt,
+            status: 'failed' as const,
+            terminal_summary: {
+              outcome: 'failed' as const,
+              xp_earned: 0,
+              perfect: false,
+              failure_reason: 'time_expired' as const,
+              completed_at: state.attempt.completed_at ?? new Date(0).toISOString(),
+            },
+          }
+
+      const base = buildSessionContext(attempt) ?? {
+        attemptId: attempt.attempt_id,
+        attempt,
+        currentExercise: attempt.exercises[0]!,
+        displayHearts: attempt.hearts,
+        maxHearts: attempt.max_hearts,
+      }
+      const { currentExercise: _ignored, ...rest } = base
+      return {
+        status: 'failed',
+        failureReason: 'time_expired',
+        ...rest,
+        attempt,
+      }
+    }
+
     case 'CONTINUE': {
       if (state.status !== 'feedback') {
         warnInvalidTransition(state.status, event.type)

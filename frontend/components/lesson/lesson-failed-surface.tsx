@@ -4,6 +4,7 @@ import { useCallback, useId, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Gem, Heart } from 'lucide-react'
 
+import { LessonTimeExpiredModal } from '@/components/lesson/lesson-time-expired-modal'
 import { Button3D } from '@/components/ui/button-3d'
 import { Modal } from '@/components/ui/modal'
 import { QuestMascot } from '@/components/ui/quest-mascot'
@@ -129,23 +130,7 @@ export function LessonFailedSurface({
 
   if (!isOutOfHearts) {
     return (
-      <main className="mx-auto flex min-h-[100dvh] max-w-lq-narrow flex-col justify-center gap-4 px-4 py-8 sm:px-6">
-        <div className="space-y-4 rounded-lq-xl border-2 border-lq-border-default border-b-[length:var(--lq-depth-xl)] border-b-lq-border-strong bg-lq-bg-surface p-6 text-center shadow-lq-xl">
-          <QuestMascot variant="concerned" size={72} decorative />
-          <StatusBadge variant="info">Timed practice ended</StatusBadge>
-          <h1 className="text-lq-2xl font-extrabold">Time expired</h1>
-          <p className="text-lq-sm font-bold text-lq-text-secondary">
-            {skillTitle}
-          </p>
-          <p className="text-lq-sm text-lq-text-secondary">
-            This Timed Practice session ended before completion. No XP was
-            awarded.
-          </p>
-          <Button3D className="w-full" onClick={handleReturnToPath}>
-            Return to learning path
-          </Button3D>
-        </div>
-      </main>
+      <LessonTimeExpiredModal skillTitle={skillTitle} attempt={attempt} />
     )
   }
 

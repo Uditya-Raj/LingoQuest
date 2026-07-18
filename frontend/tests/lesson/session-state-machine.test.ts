@@ -16,6 +16,7 @@ import {
   mockFailedAttempt,
   mockFinalAnswerResponse,
   mockLessonAttempt,
+  mockTimedAttempt,
 } from '@/tests/fixtures/phase10a'
 
 function reduceEvents(
@@ -267,6 +268,19 @@ describe('lessonSessionReducer', () => {
       { type: 'LOAD_SUCCESS', attempt },
     ])
     expect(state.status).toBe('failed')
+  })
+
+  it('TIME_EXPIRED from ready enters failed with time_expired', () => {
+    const attempt = mockTimedAttempt()
+    const state = reduceEvents(9100, [
+      { type: 'LOAD', attemptId: 9100 },
+      { type: 'LOAD_SUCCESS', attempt },
+      { type: 'TIME_EXPIRED' },
+    ])
+    expect(state.status).toBe('failed')
+    if (state.status === 'failed') {
+      expect(state.failureReason).toBe('time_expired')
+    }
   })
 
   it('clears answer feedback when advancing', () => {

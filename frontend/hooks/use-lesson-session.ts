@@ -22,12 +22,31 @@ import {
   getAttempt,
   submitAnswer,
 } from '@/lib/api'
-import type { AnswerSubmitPayload } from '@/lib/contracts/lesson'
+import type {
+  AnswerSubmitPayload,
+  LessonAttemptResponse,
+} from '@/lib/contracts/lesson'
 import { useSessionStore } from '@/stores/session-store'
 
 export interface UseLessonSessionOptions {
   attemptId: number
   enabled?: boolean
+}
+
+export type ExpiryAdjudicationResult =
+  | { outcome: 'expired'; attempt: LessonAttemptResponse }
+  | {
+      outcome: 'in_progress'
+      attempt: LessonAttemptResponse
+      remainingSeconds: number | null
+      expiresAt: string | null
+    }
+  | { outcome: 'error' }
+
+function isTimeExpiredError(err: ApiError): boolean {
+  if (err.code === 'TIME_EXPIRED') return true
+  const reason = err.details?.failure_reason
+  return reason === 'time_expired'
 }
 
 export interface UseLessonSessionResult {
@@ -45,6 +64,11 @@ export interface UseLessonSessionResult {
   continueLesson: () => void
   dismissMutationError: () => void
   retryRead: () => void
+  /**
+   * Ask the backend to adjudicate timed expiry via GET attempt.
+   * Does not fabricate answers or completion requests.
+   */
+  checkExpiry: () => Promise<ExpiryAdjudicationResult>
 }
 
 function toSessionError(err: ApiError): SessionError {
@@ -77,6 +101,7 @@ export function useLessonSession({
   const completionGenerationRef = useRef(0)
   const answerInFlightRef = useRef(false)
   const completionInFlightRef = useRef(false)
+  const expiryCheckInFlightRef = useRef(false)
   const stateRef = useRef(state)
   stateRef.current = state
 
@@ -166,6 +191,11 @@ export function useLessonSession({
         if (!mountedRef.current || controller.signal.aborted) return
         if (generation !== completionGenerationRef.current) return
 
+        if (err instanceof ApiError && isTimeExpiredError(err)) {
+          dispatch({ type: 'TIME_EXPIRED' })
+          return
+        }
+
         if (err instanceof ApiError) {
           setMutationError(toSessionError(err))
         } else {
@@ -216,6 +246,11 @@ export function useLessonSession({
           if (!mountedRef.current || controller.signal.aborted) return
           if (generation !== answerGenerationRef.current) return
 
+          if (err instanceof ApiError && isTimeExpiredError(err)) {
+            dispatch({ type: 'TIME_EXPIRED' })
+            return
+          }
+
           if (err instanceof ApiError) {
             setMutationError(toSessionError(err))
           } else {
@@ -240,6 +275,50 @@ export function useLessonSession({
     },
     [applyAnswerHearts, attemptId],
   )
+
+  const checkExpiry = useCallback(async (): Promise<ExpiryAdjudicationResult> => {
+    if (expiryCheckInFlightRef.current) {
+      return { outcome: 'error' }
+    }
+    expiryCheckInFlightRef.current = true
+
+    try {
+      const attempt = await getAttempt(attemptId)
+      if (!mountedRef.current) return { outcome: 'error' }
+
+      setAttempt(attempt)
+
+      if (
+        attempt.status === 'failed' &&
+        attempt.terminal_summary?.failure_reason === 'time_expired'
+      ) {
+        dispatch({ type: 'TIME_EXPIRED', attempt })
+        return { outcome: 'expired', attempt }
+      }
+
+      if (attempt.status === 'failed') {
+        dispatch({ type: 'LOAD_SUCCESS', attempt })
+        return { outcome: 'expired', attempt }
+      }
+
+      if (attempt.status === 'completed') {
+        dispatch({ type: 'LOAD_SUCCESS', attempt })
+        return { outcome: 'error' }
+      }
+
+      // Still in progress — do not override with a local failure.
+      return {
+        outcome: 'in_progress',
+        attempt,
+        remainingSeconds: attempt.remaining_seconds,
+        expiresAt: attempt.expires_at,
+      }
+    } catch {
+      return { outcome: 'error' }
+    } finally {
+      expiryCheckInFlightRef.current = false
+    }
+  }, [attemptId, setAttempt])
 
   const continueLesson = useCallback(() => {
     if (!selectCanContinue(stateRef.current)) return
@@ -289,5 +368,6 @@ export function useLessonSession({
     continueLesson,
     dismissMutationError,
     retryRead,
+    checkExpiry,
   }
 }

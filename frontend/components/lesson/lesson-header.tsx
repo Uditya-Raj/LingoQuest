@@ -3,14 +3,24 @@
 import { LessonExitControl } from '@/components/lesson/lesson-exit-control'
 import { LessonHearts } from '@/components/lesson/lesson-hearts'
 import { LessonProgress } from '@/components/lesson/lesson-progress'
+import { TimedCountdown } from '@/components/lesson/timed-countdown'
 import { StatusBadge } from '@/components/ui/status-badge'
+import type { TimedClockPhase } from '@/lib/lesson/timed-clock'
 import { cn } from '@/lib/utils'
+
+interface TimedHeaderClock {
+  phase: TimedClockPhase
+  displayLabel: string
+  accessibleLabel: string
+  announcement: string | null
+}
 
 interface LessonHeaderProps {
   skillTitle: string
   mode: 'standard' | 'timed'
   progress: { current: number; total: number } | null
   hearts: { hearts: number; maxHearts: number } | null
+  timedClock?: TimedHeaderClock | null
   confirmExitOpen: boolean
   onRequestExit: () => void
   onConfirmExit: () => void
@@ -22,11 +32,14 @@ export function LessonHeader({
   mode,
   progress,
   hearts,
+  timedClock = null,
   confirmExitOpen,
   onRequestExit,
   onConfirmExit,
   onCancelExit,
 }: LessonHeaderProps) {
+  const isTimed = mode === 'timed'
+
   return (
     <header
       className={cn(
@@ -46,18 +59,27 @@ export function LessonHeader({
           />
           <div className="min-w-0 flex-1">
             <p className="truncate text-lq-xs font-bold uppercase tracking-wide text-lq-text-secondary">
-              {mode === 'timed' ? 'Timed Practice' : 'Lesson'}
+              {isTimed ? 'Timed Practice' : 'Lesson'}
             </p>
             <h1 className="truncate text-lq-base font-extrabold sm:text-lq-lg">
               {skillTitle}
             </h1>
           </div>
-          {mode === 'timed' ? (
+          {isTimed ? (
             <StatusBadge variant="info" className="shrink-0">
               Timed
             </StatusBadge>
           ) : null}
-          {hearts ? (
+          {isTimed && timedClock ? (
+            <TimedCountdown
+              phase={timedClock.phase}
+              displayLabel={timedClock.displayLabel}
+              accessibleLabel={timedClock.accessibleLabel}
+              announcement={timedClock.announcement}
+              className="shrink-0"
+            />
+          ) : null}
+          {!isTimed && hearts ? (
             <LessonHearts
               hearts={hearts.hearts}
               maxHearts={hearts.maxHearts}

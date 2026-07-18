@@ -171,7 +171,7 @@ describe('Phase 10C feedback, failure, refill, and results', () => {
     )
 
     renderWithToast(<LessonPlayer attemptId={9100} />)
-    expect(await screen.findByRole('heading', { name: 'Time expired' })).toBeInTheDocument()
+    expect(await screen.findByRole('heading', { name: /Time's up/i })).toBeInTheDocument()
     expect(screen.queryByRole('button', { name: /Refill/i })).not.toBeInTheDocument()
   })
 
