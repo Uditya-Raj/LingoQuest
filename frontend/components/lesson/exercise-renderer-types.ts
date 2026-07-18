@@ -23,6 +23,8 @@ export interface ExerciseRendererProps {
   disabled: boolean
   isSubmitting: boolean
   feedback: ExerciseRendererFeedback | null
+  /** Optional Check trigger for Enter in text exercises when draft is valid. */
+  onRequestCheck?: () => void
 }
 
 export interface ExerciseRendererContract {

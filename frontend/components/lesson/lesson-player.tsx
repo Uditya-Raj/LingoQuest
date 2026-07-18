@@ -14,7 +14,7 @@ import {
   LessonLoadingSurface,
   LessonTimedNotice,
 } from '@/components/lesson/lesson-surfaces'
-import { placeholderExerciseRenderer } from '@/components/lesson/placeholder-exercise-renderer'
+import { exerciseRenderer } from '@/components/lesson/exercise-renderer'
 import { Button3D } from '@/components/ui/button-3d'
 import { useLessonSession } from '@/hooks/use-lesson-session'
 import type { SubmittedAnswer } from '@/lib/contracts/exercises'
@@ -26,7 +26,7 @@ interface LessonPlayerProps {
 
 export function LessonPlayer({
   attemptId,
-  renderer = placeholderExerciseRenderer,
+  renderer = exerciseRenderer,
 }: LessonPlayerProps) {
   const router = useRouter()
   const session = useLessonSession({ attemptId })
@@ -138,6 +138,7 @@ export function LessonPlayer({
             onDraftChange={setDraftAnswer}
             disabled={!session.canSubmit}
             isSubmitting={session.isSubmitting}
+            onRequestCheck={canPressCheck ? handleSubmit : undefined}
             feedback={
               feedbackState
                 ? {
@@ -168,13 +169,6 @@ export function LessonPlayer({
           >
             Check
           </Button3D>
-          {activeExercise &&
-          state.status === 'ready' &&
-          !renderer.isDraftValid(activeExercise, draftAnswer) ? (
-            <p className="text-center text-lq-xs text-lq-text-secondary">
-              Phase 10B exercise interactions will enable Check here.
-            </p>
-          ) : null}
         </div>
       }
       feedback={

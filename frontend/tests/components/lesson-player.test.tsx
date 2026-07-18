@@ -111,11 +111,12 @@ describe('LessonPlayer shell', () => {
     expect(screen.getByLabelText('Loading lesson')).toBeInTheDocument()
   })
 
-  it('disables production placeholder check submissions', async () => {
+  it('keeps Check disabled until a valid exercise draft exists', async () => {
     getAttemptMock.mockResolvedValue(mockLessonAttempt())
     render(<LessonPlayer attemptId={9001} />)
-    await screen.findByText(/Phase 10B exercise interactions/i)
+    await screen.findByRole('heading', { name: 'Select hello' })
     expect(screen.getByRole('button', { name: 'Check' })).toBeDisabled()
+    expect(screen.getByRole('radio', { name: 'Hello' })).toBeInTheDocument()
   })
 
   it('renders timed notice without failing locally', async () => {

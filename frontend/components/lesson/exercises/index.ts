@@ -1,0 +1,5 @@
+export { MultipleChoiceExerciseView } from './multiple-choice-exercise'
+export { WordBankExerciseView } from './word-bank-exercise'
+export { MatchPairsExerciseView } from './match-pairs-exercise'
+export { FillBlankExerciseView, splitPromptAtBlank } from './fill-blank-exercise'
+export { TypeAnswerExerciseView } from './type-answer-exercise'
