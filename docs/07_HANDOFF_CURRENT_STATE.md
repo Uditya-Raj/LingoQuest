@@ -38,13 +38,13 @@ when its exit checks in `/docs/06_IMPLEMENTATION_PHASES.md` pass.
 |---|---|
 | Product | LingoQuest |
 | Repository state | `INSPECTED` |
-| Current phase | Phase 8A — Frontend API foundation |
+| Current phase | Phase 8B — UX blueprint |
 | Current phase status | `VERIFIED` |
-| Next action | Phase 8B — UX blueprint |
+| Next action | Phase 8C — 3D design system and primitives |
 | Recommended model | Claude Opus |
-| Required skill | `ui-ux-pro-max` |
+| Required skill | `frontend-design` |
 | Last updated | 2026-07-18 |
-| Updated by | Phase 8A frontend API foundation |
+| Updated by | Phase 8B UX blueprint |
 | Active blocker | None |
 
 ---
@@ -105,6 +105,7 @@ verified.
 | Timed practice backend | `VERIFIED` | Phase 6B VERIFIED. |
 | TTS columns / admin TTS fields | `VERIFIED` | 16 TTS exercises; all five types. |
 | Frontend API client/state foundation | `VERIFIED` | Phase 8A: typed contracts, HTTP client, wrappers, session store, Vitest. |
+| UX and visual-system blueprint | `VERIFIED` | Phase 8B: `/docs/10_UX_BLUEPRINT.md` — complete 17-section visual direction. |
 | 3D design system and primitives | `NOT_STARTED` | Basic Tailwind setup complete, 3D primitives not yet implemented. |
 | Learning path UI | `NOT_STARTED` | Placeholder route `/` only; no path UI. |
 | Lesson player and five exercise UIs | `NOT_STARTED` | Placeholder `/lesson/[attemptId]` only. |
@@ -124,28 +125,35 @@ verified.
 
 ### Phase
 
-Phase 8A — Frontend API foundation
+Phase 8B — UX and visual-system blueprint
 
 ### Objective
 
-Create the strict, tested frontend foundation: environment config, exact TypeScript API
-contracts, centralized HTTP client, endpoint wrappers, server-authoritative Zustand session
-cache, Vitest coverage, and safe App Router placeholders. No visual design or playable screens.
+Create the implementation-ready visual direction for LingoQuest: product identity, design tokens,
+3D interaction system, responsive shell, all route UX specs, exercise types, motion system,
+accessibility, and component architecture. No React implementation.
 
 ### Allowed work
 
-- Env config (`NEXT_PUBLIC_API_BASE_URL`), contracts, client, wrappers, stores, tests
-- Minimal placeholder routes for architecture-required paths
-- Read-only backend smoke GETs; no lesson start/complete against the developer DB
-- Handoff update; stop (no Phase 8B visual work)
+- Design planning document only (`/docs/10_UX_BLUEPRINT.md`)
+- No React components, production UI, or package installations
+- No backend changes or API contract modifications
+- No Duolingo asset downloads
 
 ### Exit evidence required
 
-- Lint / typecheck / Vitest / production build — **passed**
-- Typed client parses standard error envelope — **passed**
-- Required routes render placeholders — **passed**
-- No `any` / `@ts-ignore` / scattered API base URLs / LingoPath in frontend — **passed**
-- Backend smoke field comparison — **passed** (no contract corrections needed)
+- Every HR UI requirement maps to a route, component, or visible state — **passed**
+- Full successful lesson journey documented — **passed**
+- Failed lesson/refill/retry journey documented — **passed**
+- Timed success and expiry documented — **passed**
+- All five exercise types specified — **passed**
+- Desktop, tablet, and mobile resolved — **passed**
+- Light and dark modes resolved — **passed**
+- 3D interaction mechanics resolved — **passed**
+- Accessibility and reduced motion resolved — **passed**
+- Result is recognizably Duolingo-like — **passed**
+- LingoQuest branding and assets remain original — **passed**
+- Implementable with Next.js, Tailwind, Zustand, and Motion — **passed**
 
 ---
 
@@ -493,24 +501,14 @@ for correcting the source document.
 
 ## Files changed in the latest phase
 
-Phase 8A frontend API foundation:
+Phase 8B UX and visual-system blueprint:
 
 | File | Change | Reason |
 |---|---|---|
-| `frontend/.env.example`, `frontend/.env` | Updated | `NEXT_PUBLIC_API_BASE_URL` (was `NEXT_PUBLIC_API_URL`) |
-| `frontend/lib/config.ts` | Created | Normalize/validate API base URL in one place |
-| `frontend/lib/constants.ts` | Created | `APP_NAME = LingoQuest` |
-| `frontend/lib/contracts/*` | Created/replaced | Exact TS contracts (common, exercises, course, lesson, hearts, user, leaderboard, achievements, admin, debug, health) |
-| `frontend/lib/api/client.ts` | Replaced | Typed fetch, ApiError envelope parsing, AbortSignal, no mutation retry |
-| `frontend/lib/api/{course,lessons,user,content,debug,health,index}.ts` | Created | Typed endpoint wrappers |
-| `frontend/stores/session-store.ts` | Created | In-memory server-authoritative cache (no local XP/heart arithmetic) |
-| `frontend/stores/ui-store.ts` | Updated | Persist key `lingoquest-ui`; theme only |
-| `frontend/app/**` | Updated/added | LingoQuest metadata; placeholder routes for skill/lesson/profile/leaderboard/settings/admin |
-| `frontend/package.json` | Updated | `lingoquest-frontend`; vitest scripts; vitest dep |
-| `frontend/vitest.config.ts`, `frontend/tests/**` | Created | Unit tests + exercise mapping type fixtures |
-| `docs/07_HANDOFF_CURRENT_STATE.md` | Updated | Phase 8A VERIFIED evidence and next phase |
+| `docs/10_UX_BLUEPRINT.md` | Created | Complete 17-section UX/visual-system blueprint |
+| `docs/07_HANDOFF_CURRENT_STATE.md` | Updated | Phase 8B VERIFIED; next phase 8C |
 
-No production backend code was changed.
+No production code, backend code, API contracts, or frontend components were changed.
 
 ---
 
@@ -587,33 +585,33 @@ None requiring a type or backend fix for the smoke endpoints.
 
 ## Exact next request for Cursor
 
-Phase 8A is VERIFIED. Use this request next:
+Phase 8B is VERIFIED. Use this request next:
 
 ```text
-Perform LingoQuest Phase 8B using Opus and the ui-ux-pro-max skill: create the frontend UX blueprint.
+Perform LingoQuest Phase 8C using Opus and the frontend-design skill: implement the original 3D
+design system and critical primitives.
 
 Read:
 1. .cursor/rules/project-rules.mdc
 2. /CLAUDE.md
 3. /docs/07_HANDOFF_CURRENT_STATE.md
-4. Phase 8B from /docs/06_IMPLEMENTATION_PHASES.md
-5. Requirements R-01 through R-15 and committed responsive bonus
-6. /docs/01_ARCHITECTURE.md — Frontend design/accessibility sections
+4. Phase 8C from /docs/06_IMPLEMENTATION_PHASES.md
+5. /docs/10_UX_BLUEPRINT.md (Sections 3, 4, 14)
+6. /docs/01_ARCHITECTURE.md — Frontend design architecture
 
-Inspect the existing frontend and define the information hierarchy, responsive layouts,
-navigation, interaction/state matrix, accessibility requirements, and screen-to-screen journey
-for path, skill start, lesson, feedback, failure, results, profile, leaderboard, settings, and
-content admin.
+Define light-theme tokens, dark-ready semantic tokens, typography, spacing, radii, layered depth,
+pressed/hover/focus/disabled/loading behaviour, and purposeful motion. Implement reusable
+Button3D, IconButton3D, Card3D, SkillNode3D, ProgressBar, ProgressRing, FeedbackSheet, Modal3D,
+and StatPill primitives with accessible semantics.
 
-Keep the experience original and branded LingoQuest. Do not copy real Duolingo assets or exact
-copy. Do not implement full screens yet. Persist the approved compact blueprint in
-/frontend/design-system.md so later chats do not re-decide it.
+Use CSS/Tailwind depth and Motion; do not add Three.js/WebGL, real Duolingo assets, or generic
+dashboard styling.
 
-Update /docs/07_HANDOFF_CURRENT_STATE.md and stop after Phase 8B.
+Update /docs/07_HANDOFF_CURRENT_STATE.md and stop after Phase 8C.
 ```
 
-**Recommended model:** Claude Opus  
-**Required skill:** `ui-ux-pro-max`
+**Recommended model:** Claude Opus
+**Required skill:** `frontend-design`
 
 ---
 
