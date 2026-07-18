@@ -51,7 +51,6 @@ describe('LearningPath', () => {
   it('renders units and all four skill states from API data', () => {
     render(<LearningPath course={mockCourse} />)
 
-    expect(screen.getByRole('heading', { name: 'Spanish' })).toBeInTheDocument()
     expect(screen.getByRole('heading', { name: 'First Steps' })).toBeInTheDocument()
     expect(screen.getByRole('heading', { name: 'Everyday Life' })).toBeInTheDocument()
 

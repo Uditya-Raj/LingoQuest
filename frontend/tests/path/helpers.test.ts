@@ -32,12 +32,16 @@ describe('findCurrentSkill', () => {
 })
 
 describe('pathOffsetForIndex', () => {
-  it('follows center-left-center-right rhythm', () => {
+  it('follows 8-step winding S-curve pattern', () => {
     expect(pathOffsetForIndex(0)).toBe('center')
-    expect(pathOffsetForIndex(1)).toBe('left')
-    expect(pathOffsetForIndex(2)).toBe('center')
+    expect(pathOffsetForIndex(1)).toBe('right')
+    expect(pathOffsetForIndex(2)).toBe('far-right')
     expect(pathOffsetForIndex(3)).toBe('right')
     expect(pathOffsetForIndex(4)).toBe('center')
+    expect(pathOffsetForIndex(5)).toBe('left')
+    expect(pathOffsetForIndex(6)).toBe('far-left')
+    expect(pathOffsetForIndex(7)).toBe('left')
+    expect(pathOffsetForIndex(8)).toBe('center')
   })
 })
 

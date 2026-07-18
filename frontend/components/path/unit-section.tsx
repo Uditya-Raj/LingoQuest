@@ -26,7 +26,7 @@ export function UnitSection({
   return (
     <section
       aria-labelledby={`unit-${unit.id}-title`}
-      className="space-y-4"
+      className="space-y-5"
       data-unit-id={unit.id}
     >
       <UnitBanner
@@ -41,7 +41,7 @@ export function UnitSection({
       <ol
         className={cn(
           'relative mx-auto flex max-w-md flex-col items-stretch',
-          'px-6 sm:px-8',
+          'px-4 sm:px-8',
           'overflow-x-clip',
         )}
       >
@@ -56,6 +56,8 @@ export function UnitSection({
                 <PathConnector
                   fromStatus={previous.status}
                   toStatus={skill.status}
+                  fromIndex={pathIndex - 1}
+                  toIndex={pathIndex}
                 />
               ) : null}
               <SkillNode
@@ -64,9 +66,6 @@ export function UnitSection({
                 isCurrent={isCurrent}
                 onLockedActivate={onLockedActivate}
               />
-              <p className="mt-2 text-center text-lq-sm font-bold text-lq-text-primary">
-                {skill.title}
-              </p>
             </li>
           )
         })}

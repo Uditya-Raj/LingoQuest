@@ -173,13 +173,15 @@ export function SkillDetailView({ skillId }: SkillDetailViewProps) {
   const pending = pendingAction !== null
 
   return (
-    <div className="mx-auto w-full max-w-md space-y-4">
+    <div className="mx-auto w-full max-w-md space-y-5 pb-28 sm:pb-6">
       <Link
         href="/"
         className={cn(
           'inline-flex min-h-11 items-center gap-2',
+          'rounded-lq-lg px-2 py-1',
           'text-lq-sm font-bold text-lq-text-secondary',
-          'hover:text-lq-primary',
+          'hover:bg-lq-bg-sunken hover:text-lq-primary',
+          'transition-colors duration-[var(--lq-duration-hover)]',
           'focus-visible:outline-2 focus-visible:outline-lq-border-focus focus-visible:outline-offset-2',
         )}
       >
@@ -187,162 +189,181 @@ export function SkillDetailView({ skillId }: SkillDetailViewProps) {
         Back to path
       </Link>
 
-      <SurfaceCard className="space-y-5 p-5 sm:p-6">
-        <div className="flex items-start gap-4">
+      <SurfaceCard className="overflow-hidden">
+        <div
+          className={cn(
+            'flex flex-col items-center gap-3 px-5 pb-4 pt-6 text-center sm:px-6',
+            locked
+              ? 'bg-lq-locked-bg'
+              : 'bg-gradient-to-b from-lq-primary/10 to-transparent',
+          )}
+        >
           <div
             className={cn(
-              'flex h-16 w-16 shrink-0 items-center justify-center',
-              'rounded-lq-full border-[3px] border-b-[length:var(--lq-depth-md)]',
+              'flex h-20 w-20 items-center justify-center',
+              'rounded-lq-full border-[3px]',
+              'border-b-[length:var(--lq-depth-lg)]',
+              'shadow-lq-md',
               locked
                 ? 'border-lq-locked-border bg-lq-locked-bg text-lq-locked-text'
-                : 'border-lq-primary-depth bg-lq-primary text-lq-text-inverse',
+                : skill.status === 'completed'
+                  ? 'border-lq-success bg-lq-success text-white border-b-lq-success-depth'
+                  : 'border-lq-primary bg-lq-primary text-white border-b-lq-primary-depth',
             )}
           >
             {locked ? (
-              <Lock size={28} aria-hidden="true" />
+              <Lock size={32} aria-hidden="true" />
             ) : (
-              <SkillIcon iconKey={skill.icon} size={28} decorative />
+              <SkillIcon iconKey={skill.icon} size={32} decorative />
             )}
           </div>
-          <div className="min-w-0 flex-1 space-y-2">
-            <div className="flex flex-wrap items-center gap-2">
-              <h1 className="text-lq-2xl font-extrabold text-lq-text-primary">
-                {skill.title}
-              </h1>
-              <StatusBadge
-                variant={
-                  locked
-                    ? 'locked'
-                    : skill.status === 'completed'
-                      ? 'success'
-                      : skill.status === 'in_progress'
-                        ? 'warning'
-                        : 'info'
-                }
-              >
-                {statusLabel(skill.status)}
-              </StatusBadge>
-            </div>
-            <p className="text-lq-sm text-lq-text-secondary">{skill.description}</p>
-          </div>
-        </div>
-
-        <div className="flex items-center gap-4">
-          <ProgressRing
-            value={skill.crowns}
-            max={skill.max_level}
-            size={72}
-            label={`${skill.crowns} of ${skill.max_level} crowns`}
-          />
           <div>
-            <p className="text-lq-sm font-bold text-lq-text-secondary">Crowns</p>
-            <p className="text-lq-xl font-extrabold tabular-nums">
-              {skill.crowns} / {skill.max_level}
-            </p>
-            <p className="text-lq-xs text-lq-text-secondary">
-              Max level {skill.max_level}
-            </p>
+            <h1 className="text-lq-2xl font-extrabold text-lq-text-primary">
+              {skill.title}
+            </h1>
+            <p className="mt-1 text-lq-sm text-lq-text-secondary">{skill.description}</p>
           </div>
-          <QuestMascot
-            className="ml-auto hidden sm:block"
-            variant={locked ? 'concerned' : 'encouraging'}
-            size={56}
-            decorative
-          />
+          <StatusBadge
+            variant={
+              locked
+                ? 'locked'
+                : skill.status === 'completed'
+                  ? 'success'
+                  : skill.status === 'in_progress'
+                    ? 'warning'
+                    : 'info'
+            }
+          >
+            {statusLabel(skill.status)}
+          </StatusBadge>
         </div>
 
-        {locked ? (
-          <div
-            className="rounded-lq border-2 border-lq-locked-border bg-lq-locked-bg p-3 text-lq-sm"
-            role="status"
-          >
-            <p className="font-bold text-lq-text-primary">This skill is locked</p>
-            <p className="mt-1 text-lq-text-secondary">
-              {blocked_reason ??
-                (skill.prerequisite
-                  ? `Complete “${skill.prerequisite.title}” first to unlock this skill.`
-                  : 'Finish the previous skill on your path to continue.')}
-            </p>
+        <div className="space-y-5 px-5 pb-5 pt-4 sm:px-6">
+          <div className="flex items-center gap-4 rounded-lq-lg bg-lq-bg-page p-3">
+            <ProgressRing
+              value={skill.crowns}
+              max={skill.max_level}
+              size={64}
+              label={`${skill.crowns} of ${skill.max_level} crowns`}
+            />
+            <div className="min-w-0 flex-1">
+              <p className="text-lq-sm font-bold text-lq-text-secondary">Crown progress</p>
+              <p className="text-lq-xl font-extrabold tabular-nums text-lq-text-primary">
+                {skill.crowns} / {skill.max_level}
+              </p>
+            </div>
+            <QuestMascot
+              variant={locked ? 'concerned' : 'encouraging'}
+              size={48}
+              decorative
+              className="shrink-0"
+            />
           </div>
-        ) : null}
 
-        {!locked && !can_start && blocked_reason ? (
-          <div
-            className="rounded-lq border-2 border-lq-error bg-lq-error-bg p-3 text-lq-sm text-lq-text-error"
-            role="status"
-          >
-            {blocked_reason}
-          </div>
-        ) : null}
-
-        {hasActive && active_attempt ? (
-          <p className="text-lq-sm font-semibold text-lq-text-secondary">
-            In progress: exercise {active_attempt.current_index + 1} of{' '}
-            {active_attempt.total_exercises}
-          </p>
-        ) : null}
-
-        <p className="text-lq-xs text-lq-text-secondary">
-          Lesson pool {lesson.exercise_pool_size} · {lesson.attempt_exercise_count}{' '}
-          exercises · {lesson.base_xp} XP base
-        </p>
-
-        {actionError ? (
-          <div
-            className="rounded-lq border-2 border-lq-error bg-lq-error-bg p-3 text-lq-sm"
-            role="alert"
-            id="skill-action-error"
-          >
-            <p className="font-bold text-lq-text-error">{actionError.code}</p>
-            <p className="text-lq-text-error">{actionError.message}</p>
-          </div>
-        ) : null}
-
-        <div className="flex flex-col gap-3">
-          {!locked ? (
-            <Button3D
-              variant="primary"
-              size="lg"
-              className="w-full"
-              loading={pendingAction === 'standard'}
-              disabled={pending || !can_start}
-              onClick={() => void runStart('standard')}
-              aria-describedby={actionError ? 'skill-action-error' : undefined}
+          {locked ? (
+            <div
+              className="flex items-start gap-3 rounded-lq-lg border-2 border-lq-locked-border bg-lq-locked-bg p-4 text-lq-sm"
+              role="status"
             >
-              {standardLabel}
-            </Button3D>
-          ) : null}
-
-          {!locked ? (
-            <div className="space-y-2 rounded-lq border-2 border-lq-secondary/40 bg-lq-bg-elevated p-3">
-              <div className="flex items-start gap-2">
-                <Clock
-                  size={18}
-                  className="mt-0.5 shrink-0 text-lq-timed"
-                  aria-hidden="true"
-                />
-                <div>
-                  <p className="font-bold text-lq-text-primary">Timed Practice</p>
-                  <p className="text-lq-xs text-lq-text-secondary">
-                    120-second challenge with {lesson.attempt_exercise_count}{' '}
-                    exercises. Mistakes do not cost hearts. Successful completion
-                    awards fixed XP without crowns.
-                  </p>
-                </div>
+              <Lock size={20} className="mt-0.5 shrink-0 text-lq-locked-text" aria-hidden="true" />
+              <div>
+                <p className="font-bold text-lq-text-primary">Skill locked</p>
+                <p className="mt-0.5 text-lq-text-secondary">
+                  {blocked_reason ??
+                    (skill.prerequisite
+                      ? `Complete "${skill.prerequisite.title}" first to unlock this trail.`
+                      : 'Finish the previous skill on your path to continue.')}
+                </p>
               </div>
-              <Button3D
-                variant="timed"
-                size="md"
-                className="w-full"
-                loading={pendingAction === 'timed'}
-                disabled={pending || skill.status === 'locked'}
-                onClick={() => void runStart('timed')}
-                aria-describedby={actionError ? 'skill-action-error' : undefined}
-              >
-                {timedLabel}
-              </Button3D>
             </div>
           ) : null}
+
+          {!locked && !can_start && blocked_reason ? (
+            <div
+              className="flex items-start gap-3 rounded-lq-lg border-2 border-lq-error bg-lq-error-bg p-4 text-lq-sm text-lq-text-error"
+              role="status"
+            >
+              {blocked_reason}
+            </div>
+          ) : null}
+
+          {hasActive && active_attempt ? (
+            <div className="flex items-center gap-2 rounded-lq-lg bg-lq-primary/10 p-3 text-lq-sm font-semibold text-lq-primary">
+              <div className="h-2 w-2 rounded-full bg-lq-primary" />
+              In progress — exercise {active_attempt.current_index + 1} of{' '}
+              {active_attempt.total_exercises}
+            </div>
+          ) : null}
+
+          <p className="text-lq-xs text-lq-text-secondary">
+            {lesson.attempt_exercise_count} exercises · {lesson.base_xp} XP base
+          </p>
+
+          {actionError ? (
+            <div
+              className="rounded-lq-lg border-2 border-lq-error bg-lq-error-bg p-4 text-lq-sm"
+              role="alert"
+              id="skill-action-error"
+            >
+              <p className="font-bold text-lq-text-error">{actionError.code}</p>
+              <p className="mt-0.5 text-lq-text-error">{actionError.message}</p>
+            </div>
+          ) : null}
+
+          <div className="flex flex-col gap-3">
+            {!locked ? (
+              <div
+                className={cn(
+                  'fixed inset-x-0 z-sticky sm:static sm:z-auto',
+                  'bottom-[calc(3.5rem+env(safe-area-inset-bottom))]',
+                  'border-t-2 border-lq-border-default bg-lq-bg-surface/95 px-4 py-3 backdrop-blur-sm',
+                  'sm:border-0 sm:bg-transparent sm:p-0 sm:backdrop-blur-none',
+                )}
+              >
+                <Button3D
+                  variant="primary"
+                  size="lg"
+                  className="w-full"
+                  loading={pendingAction === 'standard'}
+                  disabled={pending || !can_start}
+                  onClick={() => void runStart('standard')}
+                  aria-describedby={actionError ? 'skill-action-error' : undefined}
+                >
+                  {standardLabel}
+                </Button3D>
+              </div>
+            ) : null}
+
+            {!locked ? (
+              <div className="space-y-3 rounded-lq-lg border-2 border-lq-secondary/30 bg-lq-bg-elevated p-4">
+                <div className="flex items-start gap-2.5">
+                  <Clock
+                    size={20}
+                    className="mt-0.5 shrink-0 text-lq-timed"
+                    aria-hidden="true"
+                  />
+                  <div>
+                    <p className="font-bold text-lq-text-primary">Timed Practice</p>
+                    <p className="mt-0.5 text-lq-xs text-lq-text-secondary">
+                      120-second challenge · {lesson.attempt_exercise_count}{' '}
+                      exercises · No heart cost · Fixed XP
+                    </p>
+                  </div>
+                </div>
+                <Button3D
+                  variant="timed"
+                  size="md"
+                  className="w-full"
+                  loading={pendingAction === 'timed'}
+                  disabled={pending || skill.status === 'locked'}
+                  onClick={() => void runStart('timed')}
+                  aria-describedby={actionError ? 'skill-action-error' : undefined}
+                >
+                  {timedLabel}
+                </Button3D>
+              </div>
+            ) : null}
+          </div>
         </div>
       </SurfaceCard>
     </div>
@@ -352,21 +373,22 @@ export function SkillDetailView({ skillId }: SkillDetailViewProps) {
 function SkillDetailSkeleton() {
   return (
     <div
-      className="mx-auto w-full max-w-md space-y-4"
+      className="mx-auto w-full max-w-md space-y-5"
       aria-busy="true"
       aria-label="Loading skill details"
     >
-      <Skeleton width={120} height={20} />
-      <SurfaceCard className="space-y-4 p-6">
-        <div className="flex gap-4">
-          <Skeleton variant="circular" width={64} height={64} />
-          <div className="flex-1 space-y-2">
-            <Skeleton height={28} width="60%" />
-            <Skeleton height={16} width="90%" />
-          </div>
+      <Skeleton width={120} height={20} className="rounded-lq-lg" />
+      <SurfaceCard className="overflow-hidden">
+        <div className="flex flex-col items-center gap-3 px-6 pb-4 pt-6">
+          <Skeleton variant="circular" width={80} height={80} />
+          <Skeleton height={28} width="50%" />
+          <Skeleton height={16} width="70%" />
         </div>
-        <Skeleton height={48} className="w-full" />
-        <Skeleton height={56} className="w-full" />
+        <div className="space-y-4 px-6 pb-6">
+          <Skeleton height={64} className="w-full rounded-lq-lg" />
+          <Skeleton height={52} className="w-full rounded-lq-lg" />
+          <Skeleton height={80} className="w-full rounded-lq-lg" />
+        </div>
       </SurfaceCard>
     </div>
   )

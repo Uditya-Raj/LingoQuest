@@ -31,7 +31,7 @@ export function LearnerSummaryPanel({
       className={cn(
         'hidden xl:block',
         'w-[280px] shrink-0',
-        'sticky top-6 self-start',
+        'sticky top-[72px] self-start',
         className,
       )}
       aria-label="Learner summary"

@@ -42,4 +42,5 @@ Thumbs.db
 .cursor/*.json
 # Local visual QA artifacts
 frontend/tmp-phase9a-screens/
+qa-screenshots/
 

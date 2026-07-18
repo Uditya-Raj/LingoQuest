@@ -1,6 +1,6 @@
 'use client'
 
-import { Check, Lock } from 'lucide-react'
+import { Check, Crown, Lock } from 'lucide-react'
 import Link from 'next/link'
 
 import { ProgressRing } from '@/components/ui/progress-ring'
@@ -22,8 +22,10 @@ interface SkillNodeProps {
 
 const OFFSET_CLASS: Record<PathOffset, string> = {
   center: 'translate-x-0',
-  left: '-translate-x-4 sm:-translate-x-10 md:-translate-x-16',
-  right: 'translate-x-4 sm:translate-x-10 md:translate-x-16',
+  left: '-translate-x-6 sm:-translate-x-12 md:-translate-x-16',
+  right: 'translate-x-6 sm:translate-x-12 md:translate-x-16',
+  'far-left': '-translate-x-10 sm:-translate-x-16 md:-translate-x-24',
+  'far-right': 'translate-x-10 sm:translate-x-16 md:translate-x-24',
 }
 
 export function SkillNode({
@@ -39,67 +41,90 @@ export function SkillNode({
   const available = skill.status === 'available'
   const inProgress = skill.status === 'in_progress'
 
+  // Colored nodes stay bright in both themes — use white ink, not text-inverse
+  // (dark theme inverse is near-black and collapses icon contrast on primary/success).
   const nodeClass = cn(
-    'relative flex h-16 w-16 items-center justify-center sm:h-20 sm:w-20',
+    'relative flex items-center justify-center',
+    'h-[68px] w-[68px] sm:h-[80px] sm:w-[80px]',
     'rounded-lq-full',
     'border-[3px]',
-    'border-b-[length:var(--lq-depth-lg)]',
     'shadow-lq-md',
-    'transition-transform duration-[var(--lq-duration-press)]',
+    'transition-all duration-[var(--lq-duration-press)]',
     'focus-visible:outline-2 focus-visible:outline-lq-border-focus focus-visible:outline-offset-4',
+    isCurrent && 'scroll-mt-28',
     locked && [
-      'bg-lq-locked-bg border-lq-locked-border border-b-lq-locked-border',
+      'bg-lq-locked-bg border-lq-locked-border',
       'text-lq-locked-text cursor-not-allowed',
+      'shadow-none',
     ],
     available && [
-      'bg-lq-primary border-lq-primary border-b-lq-primary-depth',
-      'text-lq-text-inverse',
-      'lq-available-pulse',
+      'bg-lq-primary border-lq-primary',
+      'border-b-[length:var(--lq-depth-lg)] border-b-lq-primary-depth',
+      'text-white',
+      !isCurrent && 'lq-available-pulse',
     ],
     inProgress && [
-      'bg-lq-bg-surface border-lq-primary border-b-lq-primary-depth',
-      'text-lq-primary',
-      'ring-4 ring-lq-active-ring',
+      'bg-lq-primary border-lq-primary',
+      'border-b-[length:var(--lq-depth-lg)] border-b-lq-primary-depth',
+      'text-white',
       'shadow-lq-lg',
     ],
-    completed && [
-      'bg-lq-success border-lq-success border-b-lq-success-depth',
-      'text-lq-text-inverse',
+    (inProgress || available) && isCurrent && [
+      'ring-[5px] ring-lq-active-ring/60',
+      'scale-110',
+      'lq-available-pulse',
     ],
-    !locked && 'hover:translate-y-[-2px] active:translate-y-[var(--lq-depth-md)] active:border-b-[3px]',
+    completed && [
+      'bg-lq-success border-lq-success',
+      'border-b-[length:var(--lq-depth-lg)] border-b-lq-success-depth',
+      'text-white',
+    ],
+    !locked && [
+      'hover:-translate-y-0.5 hover:shadow-lq-lg',
+      'active:translate-y-[var(--lq-depth-md)] active:border-b-[3px] active:shadow-lq-sm',
+    ],
   )
+
+  const ringSize = 88
 
   const inner = (
     <>
-      <span className="absolute inset-0 flex items-center justify-center">
-        <ProgressRing
-          value={skill.crowns}
-          max={skill.max_level}
-          size={72}
-          strokeWidth={4}
-          label={`${skill.crowns} of ${skill.max_level} crowns`}
-          className="pointer-events-none absolute h-full w-full scale-110"
-        />
-      </span>
+      {(completed || inProgress) && skill.crowns > 0 ? (
+        <span className="absolute inset-0 flex items-center justify-center">
+          <ProgressRing
+            value={skill.crowns}
+            max={skill.max_level}
+            size={ringSize}
+            strokeWidth={5}
+            label={`${skill.crowns} of ${skill.max_level} crowns`}
+            className="pointer-events-none absolute h-full w-full scale-110"
+          />
+        </span>
+      ) : null}
       <span className="relative z-[1] flex items-center justify-center">
         {locked ? (
-          <Lock size={26} aria-hidden="true" />
+          <Lock size={24} aria-hidden="true" />
         ) : completed ? (
-          <Check size={28} strokeWidth={3} aria-hidden="true" />
+          <Check size={30} strokeWidth={3} aria-hidden="true" />
         ) : (
-          <SkillIcon iconKey={skill.icon} size={28} decorative />
+          <SkillIcon iconKey={skill.icon} size={30} decorative />
         )}
       </span>
       {skill.crowns > 0 ? (
         <span
           className={cn(
-            'absolute -bottom-1 left-1/2 z-[2] -translate-x-1/2',
-            'rounded-lq-full bg-lq-crown-bg px-1.5 py-0.5',
-            'text-[10px] font-extrabold tabular-nums text-lq-text-primary',
-            'border border-lq-crown',
+            'absolute -bottom-2.5 left-1/2 z-[2] -translate-x-1/2',
+            'inline-flex items-center gap-0.5',
+            'rounded-lq-full px-2 py-0.5',
+            'text-[11px] font-extrabold leading-none tabular-nums',
+            'border-2 shadow-lq-sm',
+            completed
+              ? 'border-lq-crown bg-lq-crown-bg text-lq-text-primary'
+              : 'border-lq-border-strong bg-lq-bg-surface text-lq-text-primary',
           )}
           aria-hidden="true"
         >
+          <Crown size={10} className="text-lq-crown" aria-hidden="true" />
           {skill.crowns}/{skill.max_level}
         </span>
       ) : null}
@@ -109,7 +134,7 @@ export function SkillNode({
   return (
     <div
       className={cn(
-        'relative z-[1] flex w-full justify-center',
+        'relative z-[1] flex w-full flex-col items-center justify-center',
         OFFSET_CLASS[offset],
       )}
       data-skill-id={skill.id}
@@ -136,6 +161,14 @@ export function SkillNode({
           {inner}
         </Link>
       )}
+      <p
+        className={cn(
+          'mt-2 text-center text-lq-sm font-bold',
+          locked ? 'text-lq-locked-text' : 'text-lq-text-primary',
+        )}
+      >
+        {skill.title}
+      </p>
     </div>
   )
 }

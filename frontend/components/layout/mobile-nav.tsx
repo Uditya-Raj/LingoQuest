@@ -30,7 +30,7 @@ export function MobileNav() {
                 href={item.href}
                 aria-current={active ? 'page' : undefined}
                 className={cn(
-                  'flex h-full min-h-11 flex-col items-center justify-center gap-0.5',
+                  'relative flex h-full min-h-11 flex-col items-center justify-center gap-0.5',
                   'text-lq-xs font-bold',
                   'focus-visible:outline-2 focus-visible:outline-lq-border-focus focus-visible:outline-offset-[-2px]',
                   active
@@ -38,6 +38,9 @@ export function MobileNav() {
                     : 'text-lq-text-secondary',
                 )}
               >
+                {active ? (
+                  <span className="absolute top-0 left-1/2 h-[3px] w-8 -translate-x-1/2 rounded-b-full bg-lq-primary" />
+                ) : null}
                 <Icon size={22} aria-hidden="true" />
                 <span>{item.label}</span>
               </Link>

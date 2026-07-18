@@ -38,13 +38,13 @@ when its exit checks in `/docs/06_IMPLEMENTATION_PHASES.md` pass.
 |---|---|
 | Product | LingoQuest |
 | Repository state | `INSPECTED` |
-| Current phase | Phase 9A — Learning-path functionality |
+| Current phase | Phase 9B — Learning-path visual composition |
 | Current phase status | `VERIFIED` |
-| Next action | Phase 9B — Learning-path visual composition |
-| Recommended model | Claude Opus |
-| Required skill | `frontend-design` |
-| Last updated | 2026-07-18 |
-| Updated by | Phase 9A functional responsive learning path |
+| Next action | Phase 10A — Lesson shell and state machine |
+| Recommended model | Claude Sonnet |
+| Required skill | None |
+| Last updated | 2026-07-19 |
+| Updated by | Phase 9B screenshot re-verification + visual fixes |
 | Active blocker | None |
 
 ---
@@ -107,15 +107,16 @@ verified.
 | Frontend API client/state foundation | `VERIFIED` | Phase 8A: typed contracts, HTTP client, wrappers, session store, Vitest. |
 | UX and visual-system blueprint | `VERIFIED` | Phase 8B: `/docs/10_UX_BLUEPRINT.md` — complete 17-section visual direction. |
 | 3D design system and primitives | `VERIFIED` | Phase 8C: complete token system, 15 primitives, theme system, Quest mascot, 67 tests. |
-| Learning path UI | `VERIFIED` | Phase 9A: AppShell, winding path, four skill states, skill detail start/resume/timed, lesson handoff. |
+| Learning path UI | `VERIFIED` | Phase 9A functional + Phase 9B visual composition. |
+| Learning path visual polish | `VERIFIED` | Phase 9B: winding S-curve, SVG connectors, 4 state hierarchy, unit banners, gamification bar, skill detail, Quest fox, responsive, dark mode. Re-verified with inspected screenshots. |
 | Lesson player and five exercise UIs | `NOT_STARTED` | Phase 9A handoff retrieves attempt only; full player is Phase 10A. |
 | Feedback/failure/completion UI | `NOT_STARTED` | Not implemented. |
 | Profile/leaderboard/settings UI | `PARTIAL` | Shell + nav live; page bodies still deferred placeholders (not path/skill). |
 | Content manager UI | `NOT_STARTED` | Placeholder `/admin/content` only. Admin nav omitted until profile exposes `is_content_admin`. |
 | Responsive accessibility | `PARTIAL` | Path/shell keyboard, focus, reduced-motion, 44px targets, no mobile overflow after fix. Full audit in Phase 13. |
-| Dark mode bonus | `PARTIAL` | Theme toggle on settings; path/shell use tokens in light/dark; polish remains for 9B/14. |
-| Automated test suite | `VERIFIED` | Backend **198 passed** (prior). Frontend Vitest **98 passed** (Phase 9A: +31 path/skill/handoff tests). |
-| Production builds | `VERIFIED` | Frontend `next build` passed (Phase 9A); backend LingoQuest API on `:8000`. |
+| Dark mode bonus | `PARTIAL` | Theme toggle on settings; path/shell use tokens in light/dark; node icons fixed to white on brand surfaces. Full polish Phase 14. |
+| Automated test suite | `VERIFIED` | Backend **198 passed** (prior). Frontend Vitest **98 passed** (Phase 9B re-run). |
+| Production builds | `VERIFIED` | Frontend `next build` passed (Phase 9B); backend LingoQuest API on `:8000`. |
 | Deployment and persistent SQLite | `NOT_STARTED` | Deferred; deployment spec missing. |
 | README and submission evidence | `NOT_STARTED` | No `README.md` exists. |
 
@@ -125,29 +126,89 @@ verified.
 
 ### Phase
 
-Phase 9A — Learning-path functionality
+Phase 9B — Learning-path visual composition
 
 ### Objective
 
-Replace learning-path and skill-detail placeholders with a functional responsive learner journey:
-course load, winding path with four backend skill states, gamification bar, skill detail
-start/resume/timed practice, and a temporary lesson handoff that retrieves the attempt.
+Visually refine the already-functional learning path and skill-detail experience until it
+immediately resembles Duolingo's page composition, feels premium through LingoQuest's 3D system,
+uses the Quest fox identity, looks intentional in both themes, and works across all viewports.
 
-### Skill used
+### Model and skill used
 
-`frontend-design` — loaded and confirmed before learner-facing UI. Applied approved Phase 8C
-tokens/primitives without redesigning the system; Quest fox flourishes used sparingly.
+**Model:** Claude Opus (normal mode)
+**Skill:** `frontend-design` — loaded and confirmed before edits. Guided the review toward
+quest/exploration grounding, restrained signature emphasis (winding path + current node), chunky
+type/depth over dashboard chrome, and critique-from-screenshots rather than code-only judgment.
 
-### Exit evidence required
+### Visual issues identified and corrected
 
-- Seeded path shows completed/in-progress/available/locked — **passed** (API + UI + screenshots)
-- Locked skills cannot start — **passed** (tests + locked feedback only)
-- Start/resume navigates to `/lesson/[attemptId]` — **passed** (tests + smoke attempt 143)
-- Top-bar values match API after refresh — **passed** (Maya 5/5, 340 XP, streak 6, gems 100)
-- Loading/error/retry states work — **passed** (path + skill detail tests)
-- Typecheck/lint/build — **passed**
-- Vitest — **passed** (98)
-- Visual viewports without horizontal overflow — **passed** after offset fix
+| Issue | Correction |
+|---|---|
+| Path was nearly linear (center-left-center-right) | Changed to 8-step S-curve pattern: center→right→far-right→right→center→left→far-left→left |
+| Path connectors were simple vertical divs | Replaced with SVG cubic bezier curves matching node offset positions |
+| Connector X positions didn't match node offsets | Tuned SVG coordinates to 30/40/50/60/70 approximating translate-x rhythm |
+| Connector height too short for visible curves | Increased to h-14/h-16 with taller viewBox |
+| Locked nodes had depth border (blueprint says none) | Removed border-bottom depth; avoid disabled-form look |
+| In-progress node used surface bg (less distinctive) | Primary fill + golden ring for current |
+| Available pulse ran on current node too (duplicate emphasis) | Pulse only on non-current available; current gets ring+scale+pulse |
+| Desktop nav rail too narrow (72px), labels truncated | Widened to 88px with active left-side bar indicator |
+| Mobile nav had no active state indicator | Added 3px top bar on active tab |
+| Stat indicator for gems had no background | Added subtle `bg-lq-primary/10` background |
+| Unit banner mascot collided with copy | Right padding on banner text; mascot 68px with drop-shadow |
+| Locked node feedback popup had no 3D depth or icon | Added depth border and Lock icon |
+| Loading skeleton didn't suggest winding path | Offset circles mimicking path curve |
+| App shell padding didn't match widened nav rail | Updated lg:pl from 72px to 88px |
+| Dark-mode node icons nearly black (`text-inverse`) | Brand-filled nodes use `text-white` (surfaces stay bright) |
+| Mobile stats wrapped / competed with brand | Header stacks brand then full-width nowrap stats; compact pills |
+| Last path nodes sat under bottom nav | Extra path `pb-10` clearance |
+| scrollIntoView ignored sticky header | `scroll-mt-28` on current node |
+| Mobile skill CTA hard to reach one-handed | Sticky primary Start/Resume above bottom nav (`sm:static`) |
+| Screenshot script used wrong skill IDs | Food=`/skill/3`, available Family=`/skill/4`, locked=`/skill/5` |
+| Full-page path shots showed sticky bar mid-scroll | Viewport captures centered on `#current-skill-node` |
+
+### Exit evidence
+
+- Winding S-curve path with curved SVG connectors — **inspected in screenshots**
+- Four skill states visually distinct and hierarchical — **passed** (all viewports)
+- Unit banners with themed gradients and depth — **passed**
+- Gamification bar with colored stat pills — **passed** (mobile row no longer wraps awkwardly)
+- Skill detail with icon, crown progress, sticky Resume, Timed Practice — **passed**
+- Locked skill clearly unavailable with explanation — **passed** (no Start CTA)
+- Quest fox on first unit banner and skill detail — **visible**
+- No horizontal scrolling at 320px — **passed**
+- Dark mode node icon contrast — **passed** after white-ink fix
+- Attempt 143 preserved (in_progress, standard, index 0) — **verified via API**
+- Typecheck / lint / build / Vitest — **all passed**
+- Quality search — **clean** (no LingoPath, no local gamification math, no learner `correct_answer`)
+
+### Screenshot viewports and states inspected
+
+| Viewport | Theme | States |
+|---|---|---|
+| 1440×900 | light + dark | Path near Food; Food detail; Family available; Questions locked |
+| 768×1024 | light | Same four pages |
+| 390×844 | light + dark | Same four pages |
+| 320×568 | light | Same four pages |
+
+Artifacts under `qa-screenshots/final/` (gitignored). Floating "N" badge in captures is the Next.js
+dev indicator, not product UI.
+
+### Accessibility checks (manual + tests)
+
+- Locked nodes do not start lessons; locked feedback uses icon + text
+- Primary nav landmarks + `aria-current` active states
+- Skill nodes expose status/crowns in accessible names
+- Focus-visible rings retained on nodes/nav/buttons
+- Reduced-motion: CSS disables continuous pulse; scroll uses `auto` when preferred
+- Touch targets: stat pills / nav / nodes ≥44px (`min-h-11` where needed)
+- Sticky skill CTA remains keyboard-activatable (same button, repositioned)
+
+### Remaining visual risks
+
+- Path winding amplitude is intentionally modest at 320px to avoid overflow; Phase 14 may tune further
+- Desktop skill detail has intentional side whitespace (no right rail on `/skill/[id]`)
+- Full responsive/a11y audit still deferred to Phase 13; visual QA screenshots to Phase 14
 
 ---
 
@@ -155,17 +216,18 @@ tokens/primitives without redesigning the system; Quest fox flourishes used spar
 
 | Date | Category | Command | Result | Notes |
 |---|---|---|---|---|
-| 2026-07-18 | Phase 9A unit | `cd frontend; npm run test` | **98 passed** | +31 path/skill/shell/handoff tests |
-| 2026-07-18 | Phase 9A typecheck | `cd frontend; npm run typecheck` | **pass** | Clean |
-| 2026-07-18 | Phase 9A lint | `cd frontend; npm run lint` | **pass** | No ESLint warnings or errors |
-| 2026-07-18 | Phase 9A build | `cd frontend; npm run build` | **pass** | Next.js 15.5.20; routes `/`, `/skill/[id]`, `/lesson/[id]` |
-| 2026-07-18 | Phase 9A quality | `: any` / `as any` / `@ts-ignore` / `LingoPath` | **0 matches** | Frontend source clean |
-| 2026-07-18 | Phase 9A quality | `localhost` hardcode in components/app | **0** | Uses `NEXT_PUBLIC_API_BASE_URL` via client |
-| 2026-07-18 | Phase 9A quality | `correct_answer` in learner components/app | **0** | Handoff never renders answers |
-| 2026-07-18 | Phase 9A preflight | OpenAPI on `:8000` before restart | **LingoPath API (stale)** | Identified; not used |
-| 2026-07-18 | Phase 9A preflight | Restarted `d:\LingoQuest\backend` uvicorn `:8000` | **LingoQuest API** | course/me/hearts/leaderboard/achievements **200** |
-| 2026-07-18 | Phase 9A smoke | `POST /api/skills/3/start` | **201** attempt **143** | `resumed=false`, standard, 10 exercises |
-| 2026-07-18 | Phase 9A smoke | `GET /api/lessons/143` | **200** | `in_progress`; no `correct_answer` in body |
+| 2026-07-19 | Phase 9B unit | `cd frontend; npm run test` | **98 passed** | Re-run after sticky CTA / dark icon fixes |
+| 2026-07-19 | Phase 9B typecheck | `cd frontend; npm run typecheck` | **pass** | Clean |
+| 2026-07-19 | Phase 9B lint | `cd frontend; npm run lint` | **pass** | No ESLint warnings or errors |
+| 2026-07-19 | Phase 9B build | `cd frontend; npm run build` | **pass** | Next.js 15.5.20 |
+| 2026-07-19 | Phase 9B quality | `any` / `@ts-ignore` / `LingoPath` | **0 in app source** | `expect.any` only in tests |
+| 2026-07-19 | Phase 9B quality | `correct_answer` in learner UI | **0** | Admin/answer contracts only |
+| 2026-07-19 | Phase 9B quality | Local hearts/XP/streak/crown arithmetic | **0** | All backend-derived |
+| 2026-07-19 | Phase 9B quality | Duolingo references in code | **0** (1 test icon fallback only) | No copied assets |
+| 2026-07-19 | Phase 9B smoke | `GET /api/lessons/143` | **200** | `in_progress`, standard, index 0; no `correct_answer` |
+| 2026-07-19 | Phase 9B smoke | OpenAPI title | **LingoQuest API** | Verified on `:8000` |
+| 2026-07-19 | Phase 9B screenshots | 24 Playwright captures | **pass** | Inspected after corrections |
+| 2026-07-18 | Phase 9A smoke | `POST /api/skills/3/start` | **201** attempt **143** | Historical |
 | 2026-07-18 | Phase 8C unit | `cd frontend; npx vitest run` | **67 passed** | button, progress, modal, toast, mascot, stores, client |
 | 2026-07-18 | Phase 8A smoke | GET course/me/hearts/leaderboard/achievements on `127.0.0.1:8001` | **200** all | Historical; `:8000` now correct |
 | 2026-07-18 | Phase 7C focused | `python -m pytest tests/test_phase7c_acceptance.py -q` | **13 passed** | Fresh Alembic+seed HTTP acceptance |
@@ -180,15 +242,16 @@ For visual or interactive phases, record the viewport and exact flow exercised.
 
 | Date | Screen/flow | Viewport | Result | Evidence/notes |
 |---|---|---|---|---|
-| 2026-07-18 | Learning path (Maya seeded states) | 1440×900 light/dark | Pass | Desktop rail + right summary; four states visible |
-| 2026-07-18 | Learning path | 768×1024 | Pass | Bottom nav; centered path |
-| 2026-07-18 | Learning path | 390×844 light/dark | Pass | Compact stats + bottom nav; overflow fixed |
-| 2026-07-18 | Learning path | ~320px | Pass | No horizontal overflow after offset/padding fix |
-| 2026-07-18 | Skill detail Food | 1440 / 390 | Pass | Crowns 2/5; Start/Resume + Timed Practice |
+| 2026-07-19 | Learning path near Food | 1440×900 light/dark | Pass | Rail + right summary; white icons in dark; S-curve + connectors |
+| 2026-07-19 | Learning path | 768×1024 light | Pass | Bottom nav; unit banners; Food current |
+| 2026-07-19 | Learning path | 390×844 light/dark | Pass | Brand+stats stacked; Food ring+crowns; no overflow |
+| 2026-07-19 | Learning path | 320×568 light | Pass | Stats readable; winding offsets; no horizontal scroll |
+| 2026-07-19 | Skill Food (attempt 143) | 1440 / 390 light+dark | Pass | Resume sticky on mobile; Timed secondary; crowns 2/5 |
+| 2026-07-19 | Skill Family available | 390 light | Pass | Start Lesson primary; Timed Practice secondary |
+| 2026-07-19 | Skill Questions locked | 390 light+dark | Pass | Lock icon+copy; no Start CTA |
 | 2026-07-18 | Lesson handoff | 390×844 | Pass | Attempt 143 retrieved; no `correct_answer` |
-| 2026-07-18 | Locked Questions | API + UI | Pass | Locked node does not call start; feedback only |
 
-Smoke attempt created during Phase 9A: **attempt_id=143** (Food, standard, `in_progress`, index 0/10). Preserved intentionally for resume testing. Do not complete/fail in this phase. Course reports `active_attempt_id=143` on Food.
+Smoke attempt created during Phase 9A: **attempt_id=143** (Food, standard, `in_progress`, index 0/10). **Still preserved** after Phase 9B (`GET /api/lessons/143` → 200). Do not complete/fail until resume/player testing needs it. Course reports `active_attempt_id=143` on Food.
 
 ---
 
@@ -569,22 +632,22 @@ Phase 9A functional responsive learning path:
 
 ## Exact next request for Cursor
 
-Phase 9A is VERIFIED. Use this request next:
+Phase 9B is VERIFIED. Use this request next:
 
 ```text
-Perform LingoQuest Phase 9B using Opus and frontend-design: polish the real learning path and skill
-start screens without changing API behaviour.
+Perform LingoQuest Phase 10A: functional lesson attempt shell.
 
-Follow the Common phase protocol. Create a distinctive winding path, strong unit hierarchy,
-tactile nodes, clear state differentiation, progress/crown readability, balanced desktop width,
-and excellent mobile flow. Use original LingoQuest visuals and approved primitives.
+Follow the Common phase protocol. On /lesson/[attemptId], retrieve the attempt from the backend,
+render the current persisted index, progress, hearts and safe terminal states, and create the
+answer -> feedback -> continue -> next -> complete state machine.
 
-Run the app and judge rendered screenshots at mobile, tablet, and desktop sizes. Fix visual and
-interaction issues you can verify. Do not modify backend contracts.
+Handle refresh/direct navigation, duplicate-click prevention, request errors, failed status,
+completion result, exit confirmation, and retry after refill. Do not implement the five exercise
+widgets in this subphase beyond a typed renderer boundary.
 ```
 
-**Recommended model:** Claude Opus  
-**Required skill:** `frontend-design`
+**Recommended model:** Claude Sonnet  
+**Required skill:** None
 
 ---
 

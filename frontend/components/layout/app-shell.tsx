@@ -46,27 +46,27 @@ export function AppShell({
 
       <div
         className={cn(
-          'lg:pl-[72px]',
+          'lg:pl-[88px]',
           'pb-[calc(3.5rem+env(safe-area-inset-bottom))] lg:pb-6',
         )}
       >
         <header
           className={cn(
             'sticky top-0 z-sticky',
-            'border-b-2 border-lq-border-default',
+            'border-b border-lq-border-default',
             'bg-lq-bg-surface/95 backdrop-blur-sm',
-            'px-4 py-3 sm:px-6',
+            'px-4 py-2.5 sm:px-6',
           )}
         >
           <div className="mx-auto flex max-w-lq-full flex-col gap-2">
-            <div className="flex items-center justify-between gap-3">
-              <p className="truncate font-extrabold text-lq-primary lg:hidden">
+            <div className="flex flex-col gap-1.5 sm:flex-row sm:items-center sm:justify-between sm:gap-3">
+              <p className="truncate text-lq-base font-extrabold text-lq-primary sm:text-lq-lg lg:hidden">
                 LingoQuest
               </p>
               <GamificationBar
                 learner={learner}
                 loading={learnerLoading}
-                className="min-w-0 flex-1 justify-end overflow-hidden lg:justify-start"
+                className="w-full justify-between sm:w-auto sm:min-w-0 sm:flex-1 sm:justify-end lg:justify-start"
                 showDailyGoal={false}
               />
             </div>
@@ -76,8 +76,8 @@ export function AppShell({
 
         <div
           className={cn(
-            'mx-auto flex w-full max-w-lq-full gap-6',
-            'px-4 py-6 sm:px-6',
+            'mx-auto flex w-full max-w-lq-full gap-8',
+            'px-4 py-6 sm:px-6 lg:px-8',
           )}
         >
           <main id="main-content" className="min-w-0 flex-1">

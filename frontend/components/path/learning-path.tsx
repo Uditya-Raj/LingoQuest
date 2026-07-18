@@ -1,6 +1,7 @@
 'use client'
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { Lock } from 'lucide-react'
 
 import { Button3D } from '@/components/ui/button-3d'
 import { QuestMascot } from '@/components/ui/quest-mascot'
@@ -75,21 +76,8 @@ export function LearningPath({ course }: LearningPathProps) {
   let pathStartIndex = 0
 
   return (
-    <div className="relative mx-auto w-full max-w-lq-standard overflow-x-clip">
-      <header className="mb-6 space-y-1 text-center sm:text-left">
-        <p className="text-lq-sm font-bold uppercase tracking-wide text-lq-text-secondary">
-          Course
-        </p>
-        <h1 className="text-lq-3xl font-extrabold text-lq-text-primary">
-          {course.course.title}
-        </h1>
-        <p className="text-lq-sm text-lq-text-secondary">
-          {course.course.from_language_code.toUpperCase()} →{' '}
-          {course.course.language_code.toUpperCase()}
-        </p>
-      </header>
-
-      <div className="space-y-10" role="list" aria-label="Learning path units">
+    <div className="relative mx-auto w-full max-w-lq-standard overflow-x-clip pb-10">
+      <div className="space-y-8 pb-4" role="list" aria-label="Learning path units">
         {course.units.map((unit, unitIndex) => {
           const start = pathStartIndex
           pathStartIndex += unit.skills.length
@@ -113,11 +101,15 @@ export function LearningPath({ course }: LearningPathProps) {
           className={cn(
             'fixed bottom-20 left-1/2 z-feedback w-[min(24rem,calc(100%-2rem))]',
             '-translate-x-1/2 rounded-lq-lg border-2 border-lq-locked-border',
-            'bg-lq-bg-surface p-3 text-center text-lq-sm font-semibold shadow-lq-lg',
+            'border-b-[length:var(--lq-depth-md)] border-b-lq-locked-border',
+            'bg-lq-bg-surface px-4 py-3 text-center text-lq-sm font-semibold shadow-lq-lg',
             'lg:bottom-6',
           )}
         >
-          <p>{lockedMessage}</p>
+          <div className="flex items-center justify-center gap-2">
+            <Lock size={16} className="shrink-0 text-lq-locked-text" aria-hidden="true" />
+            <p>{lockedMessage}</p>
+          </div>
           <button
             type="button"
             className="mt-2 text-lq-sm font-bold text-lq-primary underline"
@@ -145,25 +137,27 @@ export function LearningPath({ course }: LearningPathProps) {
 }
 
 export function LearningPathSkeleton() {
+  const offsets = [
+    'translate-x-0',
+    'translate-x-8',
+    'translate-x-12',
+    'translate-x-8',
+    'translate-x-0',
+    '-translate-x-8',
+  ]
   return (
     <div
-      className="mx-auto w-full max-w-lq-standard space-y-8"
+      className="mx-auto w-full max-w-lq-standard space-y-6"
       aria-busy="true"
       aria-label="Loading learning path"
     >
-      <div className="space-y-2">
-        <Skeleton width={96} height={16} />
-        <Skeleton width={180} height={36} />
-      </div>
-      <Skeleton height={96} className="w-full" />
-      <div className="flex flex-col items-center gap-8">
-        {Array.from({ length: 5 }).map((_, index) => (
-          <Skeleton
-            key={index}
-            variant="circular"
-            width={80}
-            height={80}
-          />
+      <Skeleton height={88} className="w-full rounded-lq-xl" />
+      <div className="flex flex-col items-center gap-3 px-8">
+        {offsets.map((offset, index) => (
+          <div key={index} className={cn('flex flex-col items-center', offset)}>
+            <Skeleton variant="circular" width={72} height={72} />
+            <Skeleton width={56} height={12} className="mt-2 rounded-lq-full" />
+          </div>
         ))}
       </div>
     </div>

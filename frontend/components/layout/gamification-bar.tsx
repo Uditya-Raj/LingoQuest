@@ -56,7 +56,7 @@ export function GamificationBar({
   return (
     <div
       className={cn(
-        'flex flex-wrap items-center gap-1 sm:gap-2',
+        'flex flex-nowrap items-center gap-1 sm:gap-2',
         'min-h-11',
         className,
       )}

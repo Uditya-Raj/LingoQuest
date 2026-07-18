@@ -40,10 +40,19 @@ export function skillNodeAriaLabel(skill: SkillSummary, isCurrent: boolean): str
   return `${skill.title}, ${statusLabel(skill.status)}, ${crownPart}${currentPart}`
 }
 
-/** Repeating winding offsets: center, left, center, right. */
-export type PathOffset = 'center' | 'left' | 'right'
+/** Winding offsets producing a natural S-curve with handcrafted feel. */
+export type PathOffset = 'center' | 'left' | 'right' | 'far-left' | 'far-right'
 
 export function pathOffsetForIndex(index: number): PathOffset {
-  const pattern: PathOffset[] = ['center', 'left', 'center', 'right']
+  const pattern: PathOffset[] = [
+    'center',
+    'right',
+    'far-right',
+    'right',
+    'center',
+    'left',
+    'far-left',
+    'left',
+  ]
   return pattern[index % pattern.length]
 }

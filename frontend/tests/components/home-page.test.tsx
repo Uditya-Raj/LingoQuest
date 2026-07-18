@@ -46,7 +46,7 @@ describe('HomePage course loading', () => {
     render(<HomePage />)
 
     expect(screen.getByLabelText('Loading learning path')).toBeInTheDocument()
-    expect(await screen.findByRole('heading', { name: 'Spanish' })).toBeInTheDocument()
+    expect(await screen.findByRole('heading', { name: 'First Steps' })).toBeInTheDocument()
     expect(screen.getByLabelText('4 of 5 hearts')).toBeInTheDocument()
     expect(screen.getByLabelText('340 total XP')).toBeInTheDocument()
 

@@ -15,28 +15,28 @@ export function DesktopNav() {
       className={cn(
         'hidden lg:flex',
         'fixed inset-y-0 left-0 z-navigation',
-        'w-[72px]',
-        'flex-col items-center gap-2',
+        'w-[88px]',
+        'flex-col items-center gap-1',
         'border-r-2 border-lq-border-default',
         'bg-lq-bg-surface',
-        'px-2 py-4',
+        'px-2 pt-4 pb-6',
       )}
     >
       <Link
         href="/"
         className={cn(
-          'mb-4 flex h-12 w-12 items-center justify-center',
-          'rounded-lq font-extrabold text-lq-primary',
+          'mb-6 flex h-12 items-center justify-center gap-1',
+          'rounded-lq-lg px-2 font-extrabold text-lq-primary',
           'focus-visible:outline-2 focus-visible:outline-lq-border-focus focus-visible:outline-offset-2',
         )}
         aria-label="LingoQuest home"
       >
-        <span aria-hidden="true" className="text-lq-lg">
+        <span aria-hidden="true" className="text-lq-xl tracking-tight">
           LQ
         </span>
       </Link>
 
-      <ul className="flex w-full flex-col items-center gap-1">
+      <ul className="flex w-full flex-1 flex-col items-center gap-1">
         {LEARNER_NAV_ITEMS.map((item) => {
           const active = isNavItemActive(pathname, item.href)
           const Icon = item.icon
@@ -46,9 +46,9 @@ export function DesktopNav() {
                 href={item.href}
                 aria-current={active ? 'page' : undefined}
                 className={cn(
-                  'flex min-h-11 w-full flex-col items-center justify-center gap-0.5',
-                  'rounded-lq px-1 py-2',
-                  'text-lq-xs font-bold',
+                  'group relative flex min-h-12 w-full flex-col items-center justify-center gap-0.5',
+                  'rounded-lq-lg px-1 py-2',
+                  'text-[11px] font-bold leading-tight',
                   'transition-colors duration-[var(--lq-duration-hover)]',
                   'focus-visible:outline-2 focus-visible:outline-lq-border-focus focus-visible:outline-offset-2',
                   active
@@ -56,8 +56,11 @@ export function DesktopNav() {
                     : 'text-lq-text-secondary hover:bg-lq-bg-sunken hover:text-lq-text-primary',
                 )}
               >
+                {active ? (
+                  <span className="absolute left-0 top-1/2 h-8 w-[3px] -translate-y-1/2 rounded-r-full bg-lq-primary" />
+                ) : null}
                 <Icon size={22} aria-hidden="true" />
-                <span>{item.label}</span>
+                <span className="truncate">{item.label}</span>
               </Link>
             </li>
           )
