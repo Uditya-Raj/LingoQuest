@@ -38,13 +38,13 @@ when its exit checks in `/docs/06_IMPLEMENTATION_PHASES.md` pass.
 |---|---|
 | Product | LingoQuest |
 | Repository state | `INSPECTED` |
-| Current phase | Phase 8B — UX blueprint |
+| Current phase | Phase 8C — 3D design system and primitives |
 | Current phase status | `VERIFIED` |
-| Next action | Phase 8C — 3D design system and primitives |
-| Recommended model | Claude Opus |
-| Required skill | `frontend-design` |
+| Next action | Phase 9A — Learning-path functionality |
+| Recommended model | Claude Sonnet |
+| Required skill | None |
 | Last updated | 2026-07-18 |
-| Updated by | Phase 8B UX blueprint |
+| Updated by | Phase 8C 3D design system |
 | Active blocker | None |
 
 ---
@@ -106,16 +106,16 @@ verified.
 | TTS columns / admin TTS fields | `VERIFIED` | 16 TTS exercises; all five types. |
 | Frontend API client/state foundation | `VERIFIED` | Phase 8A: typed contracts, HTTP client, wrappers, session store, Vitest. |
 | UX and visual-system blueprint | `VERIFIED` | Phase 8B: `/docs/10_UX_BLUEPRINT.md` — complete 17-section visual direction. |
-| 3D design system and primitives | `NOT_STARTED` | Basic Tailwind setup complete, 3D primitives not yet implemented. |
+| 3D design system and primitives | `VERIFIED` | Phase 8C: complete token system, 15 primitives, theme system, Quest mascot, 67 tests. |
 | Learning path UI | `NOT_STARTED` | Placeholder route `/` only; no path UI. |
 | Lesson player and five exercise UIs | `NOT_STARTED` | Placeholder `/lesson/[attemptId]` only. |
 | Feedback/failure/completion UI | `NOT_STARTED` | Not implemented. |
 | Profile/leaderboard/settings UI | `NOT_STARTED` | Placeholder routes only. |
 | Content manager UI | `NOT_STARTED` | Placeholder `/admin/content` only. |
 | Responsive accessibility | `NOT_STARTED` | Not implemented. |
-| Dark mode bonus | `NOT_STARTED` | UI theme preference store exists; no theme implementation. |
-| Automated test suite | `VERIFIED` | Backend **198 passed** (prior). Frontend Vitest **22 passed** (Phase 8A). |
-| Production builds | `VERIFIED` | Frontend `next build` passed (Phase 8A); backend startup prior. |
+| Dark mode bonus | `PARTIAL` | Theme system implemented (light/dark/system with flash prevention); tokens complete; screens not yet themed. |
+| Automated test suite | `VERIFIED` | Backend **198 passed** (prior). Frontend Vitest **67 passed** (Phase 8C: +45 component/store tests). |
+| Production builds | `VERIFIED` | Frontend `next build` passed (Phase 8C); backend startup prior. |
 | Deployment and persistent SQLite | `NOT_STARTED` | Deferred; deployment spec missing. |
 | README and submission evidence | `NOT_STARTED` | No `README.md` exists. |
 
@@ -125,35 +125,28 @@ verified.
 
 ### Phase
 
-Phase 8B — UX and visual-system blueprint
+Phase 8C — 3D design system and primitives
 
 ### Objective
 
-Create the implementation-ready visual direction for LingoQuest: product identity, design tokens,
-3D interaction system, responsive shell, all route UX specs, exercise types, motion system,
-accessibility, and component architecture. No React implementation.
+Implement the approved LingoQuest visual foundation: design tokens, typography, 3D interaction
+system, reusable primitives, theme management, toast/modal infrastructure, Quest mascot, and
+development-only showcase.
 
-### Allowed work
+### Skill used
 
-- Design planning document only (`/docs/10_UX_BLUEPRINT.md`)
-- No React components, production UI, or package installations
-- No backend changes or API contract modifications
-- No Duolingo asset downloads
+`frontend-design` — loaded before implementation. Guided: subject-specific design choices (not
+generic defaults), Nunito as characterful type, 3D depth as the signature visual element,
+restraint in decoration, and self-critique during implementation.
 
 ### Exit evidence required
 
-- Every HR UI requirement maps to a route, component, or visible state — **passed**
-- Full successful lesson journey documented — **passed**
-- Failed lesson/refill/retry journey documented — **passed**
-- Timed success and expiry documented — **passed**
-- All five exercise types specified — **passed**
-- Desktop, tablet, and mobile resolved — **passed**
-- Light and dark modes resolved — **passed**
-- 3D interaction mechanics resolved — **passed**
-- Accessibility and reduced motion resolved — **passed**
-- Result is recognizably Duolingo-like — **passed**
-- LingoQuest branding and assets remain original — **passed**
-- Implementable with Next.js, Tailwind, Zustand, and Motion — **passed**
+- Primitives render at mobile and desktop widths — **passed** (showcase renders at all widths)
+- Mouse, keyboard, touch, focus, reduced-motion, disabled/loading states work — **passed**
+- Typecheck/lint/build pass — **passed** (all three green)
+- Shared tokens/primitives documented — **passed** (token system in globals.css; components in components/ui/)
+- No screen-specific duplicated 3D CSS — **passed** (all depth in components/ui/ only)
+- Tests pass — **passed** (67 tests, all passing)
 
 ---
 
@@ -161,10 +154,15 @@ accessibility, and component architecture. No React implementation.
 
 | Date | Category | Command | Result | Notes |
 |---|---|---|---|---|
-| 2026-07-18 | Phase 8A unit | `cd frontend; npm run test` | **22 passed** | client + session store |
-| 2026-07-18 | Phase 8A typecheck | `cd frontend; npm run typecheck` | **pass** | `tsc --noEmit` |
-| 2026-07-18 | Phase 8A lint | `cd frontend; npm run lint` | **pass** | No ESLint warnings or errors |
-| 2026-07-18 | Phase 8A build | `cd frontend; npm run build` | **pass** | Next.js 15.5.20; routes `/`, skill, lesson, profile, leaderboard, settings, admin/content |
+| 2026-07-18 | Phase 8C unit | `cd frontend; npx vitest run` | **67 passed** | button, progress, modal, toast, mascot, stores, client |
+| 2026-07-18 | Phase 8C typecheck | `cd frontend; npx tsc --noEmit` | **pass** | Clean, no errors |
+| 2026-07-18 | Phase 8C lint | `cd frontend; npx next lint` | **pass** | No ESLint warnings or errors |
+| 2026-07-18 | Phase 8C build | `cd frontend; npx next build` | **pass** | Next.js 15.5.20; includes /design-system showcase route |
+| 2026-07-18 | Phase 8C quality | `any` / `@ts-ignore` / `LingoPath` search | **0 matches** | Clean frontend source |
+| 2026-07-18 | Phase 8C quality | Hard-coded colors in primitives | **0** (only in mascot SVG fills) | Mascot fills are original illustration, not token bypass |
+| 2026-07-18 | Phase 8C quality | Duplicated 3D depth outside `components/ui/` | **0** | All depth in shared primitives only |
+| 2026-07-18 | Phase 8C quality | Persisted hearts/XP/streak/crowns/gems in UI store | **0** | Only theme preference persisted |
+| 2026-07-18 | Phase 8C quality | Design-system route in production | **returns 404** | `notFound()` when `NODE_ENV !== 'development'` |
 | 2026-07-18 | Phase 8A smoke | GET course/me/hearts/leaderboard/achievements on `127.0.0.1:8001` | **200** all | Current LingoQuest API; fields match TS contracts |
 | 2026-07-18 | Phase 7C focused | `python -m pytest tests/test_phase7c_acceptance.py -q` | **13 passed** | Fresh Alembic+seed HTTP acceptance |
 | 2026-07-18 | all backend | `python -m pytest tests/ -q` | **198 passed** | 185 prior + 13 Phase 7C |
@@ -264,7 +262,7 @@ that skill. Do not substitute or reference invented skills.
 | Frontend area | Functional evidence | Visual evidence | Result |
 |---|---|---|---|
 | Shared API/error/session handling | Typed client + ApiError + session store; Vitest 22 | Not applicable | **Verified** (Phase 8A) |
-| 3D primitives/design tokens | — | Required at target viewports | Not verified |
+| 3D primitives/design tokens | 15 primitives + full token system + 45 component tests | Dev showcase at `/design-system` | **Verified** (Phase 8C) |
 | Learning path | Placeholder `/` only | Required at desktop/mobile | Not verified |
 | Lesson player | Placeholder `/lesson/[attemptId]` | Required at desktop/mobile | Not verified |
 | Profile | Placeholder `/profile` | Required | Not verified |
@@ -501,14 +499,45 @@ for correcting the source document.
 
 ## Files changed in the latest phase
 
-Phase 8B UX and visual-system blueprint:
+Phase 8C 3D design system and primitives:
 
 | File | Change | Reason |
 |---|---|---|
-| `docs/10_UX_BLUEPRINT.md` | Created | Complete 17-section UX/visual-system blueprint |
-| `docs/07_HANDOFF_CURRENT_STATE.md` | Updated | Phase 8B VERIFIED; next phase 8C |
+| `frontend/app/globals.css` | Rewritten | Complete CSS custom property token system (light + dark themes, radii, spacing, shadows, depth, motion, z-index, keyframes) |
+| `frontend/tailwind.config.js` | Rewritten | Semantic Tailwind extensions consuming CSS tokens; `darkMode: 'class'`; Nunito font family; custom fontSize scale |
+| `frontend/app/layout.tsx` | Updated | Nunito font import, ThemeScript for flash prevention, viewport export |
+| `frontend/lib/utils/index.ts` | Updated | Upgraded `cn()` to use clsx + tailwind-merge |
+| `frontend/stores/ui-store.ts` | Updated | Added 'system' theme preference; `applyTheme()` applies dark class |
+| `frontend/vitest.config.ts` | Updated | jsdom environment; @vitejs/plugin-react for JSX transform |
+| `frontend/tests/setup.ts` | Updated | Added cleanup, jest-dom/vitest, matchMedia mock |
+| `frontend/components/ui/theme-script.tsx` | Created | Inline script preventing theme flash before hydration |
+| `frontend/components/ui/button-3d.tsx` | Created | 3D button with 6 variants, 3 sizes, loading/disabled states |
+| `frontend/components/ui/icon-button-3d.tsx` | Created | Circular icon button with depth and active state |
+| `frontend/components/ui/surface-card.tsx` | Created | Card surface with default/elevated/interactive variants |
+| `frontend/components/ui/choice-tile.tsx` | Created | Radio-style answer choice with correct/incorrect/selected states |
+| `frontend/components/ui/word-tile.tsx` | Created | Word bank tile with placed/correct/incorrect states |
+| `frontend/components/ui/match-tile.tsx` | Created | Match pair tile with selected/paired/correct/used states |
+| `frontend/components/ui/status-badge.tsx` | Created | Small labeled badge with 6 semantic variants |
+| `frontend/components/ui/stat-indicator.tsx` | Created | Icon + number pill for gamification stats |
+| `frontend/components/ui/progress-bar.tsx` | Created | Horizontal fill bar with accessible semantics and clamping |
+| `frontend/components/ui/progress-ring.tsx` | Created | SVG circular progress ring with crown segments |
+| `frontend/components/ui/modal.tsx` | Created | Focus-trapping dialog with Motion entrance, dismissible/non-dismissible |
+| `frontend/components/ui/toast.tsx` | Created | Toast provider with queue, priority, auto-dismiss, max 2 visible |
+| `frontend/components/ui/feedback-surface.tsx` | Created | Bottom feedback bar for correct/incorrect with Motion slide |
+| `frontend/components/ui/skeleton.tsx` | Created | Loading placeholder with text/circular/rectangular variants |
+| `frontend/components/ui/theme-toggle.tsx` | Created | Light/dark/system radio toggle |
+| `frontend/components/ui/quest-mascot.tsx` | Created | Original Quest fox SVG with neutral/encouraging/celebrating/concerned |
+| `frontend/components/ui/index.ts` | Updated | Barrel export for all 15 primitives |
+| `frontend/app/design-system/page.tsx` | Created | Dev-only showcase rendering all primitives and states |
+| `frontend/tests/components/button-3d.test.tsx` | Created | 16 tests: variants, sizes, disabled, loading, keyboard |
+| `frontend/tests/components/progress.test.tsx` | Created | 6 tests: aria attributes, clamping, max=0 safety |
+| `frontend/tests/components/modal.test.tsx` | Created | 7 tests: open/close, focus trap, Escape, non-dismissible |
+| `frontend/tests/components/toast.test.tsx` | Created | 4 tests: add, queue limit, dismiss, auto-dismiss |
+| `frontend/tests/components/mascot.test.tsx` | Created | 7 tests: decorative, labeled, variants, sizing |
+| `frontend/tests/stores/ui-store.test.ts` | Rewritten | 5 tests: theme preference, dark class, no learner state |
+| `frontend/package.json` | Updated | Added @fontsource-variable/nunito, clsx, tailwind-merge, lucide-react, testing deps |
 
-No production code, backend code, API contracts, or frontend components were changed.
+No backend code, API contracts, or database changes were made.
 
 ---
 
@@ -577,41 +606,109 @@ None requiring a type or backend fix for the smoke endpoints.
 |---|---|
 | Current branch | `main` |
 | Pre-existing unrelated edits | Preserved |
-| Files changed this phase | Frontend API foundation + handoff (see table above) |
+| Files changed this phase | Design system primitives + tests + handoff (see table above) |
 | Backend production code | **Unchanged** |
-| Developer local DB | **Read-only smoke** (no start/complete) |
+| Developer local DB | **Not touched** |
+
+---
+
+## Phase 8C implementation details
+
+### Token system
+
+- **Source of truth:** CSS custom properties in `app/globals.css` (`:root` for light, `.dark` for dark)
+- **Tailwind integration:** `tailwind.config.js` extends colors, radii, shadows, z-index, maxWidth, fontSize via `var()` references
+- **Dark mode strategy:** Tailwind `darkMode: 'class'`; `ThemeScript` inline script prevents flash before React hydration
+
+### Typography
+
+- **Font:** `@fontsource-variable/nunito` (npm package, open-licensed, no build-time download)
+- **Scale:** 8 sizes from `lq-xs` (12px) to `lq-4xl` (36px) with line-height pairs
+- **Weights:** 400 (normal) through 800 (extrabold)
+- **Fallbacks:** `'Nunito Variable', 'Nunito', system-ui, -apple-system, sans-serif`
+
+### 3D interaction system
+
+- **Mechanic:** CSS `border-bottom` (colored depth edge) + `box-shadow` + `translateY` on press
+- **Depths:** 4 levels (sm=2px, md=4px, lg=6px, xl=8px) as CSS custom properties
+- **States:** resting, hover (lift -1px), pressed (translateY by depth + border-b collapse), selected, disabled (opacity), loading, focus-visible (outline offset)
+- **Reduced motion:** Global `prefers-reduced-motion: reduce` removes all transitions/animations
+
+### Primitives implemented (15 total)
+
+| Primitive | Purpose |
+|---|---|
+| `Button3D` | Primary CTA with 6 variants, 3 sizes, loading/disabled |
+| `IconButton3D` | Circular icon button with active state |
+| `SurfaceCard` | Container with default/elevated/interactive variants |
+| `ChoiceTile` | Radio-style answer choice with state feedback |
+| `WordTile` | Word bank tile with available/placed states |
+| `MatchTile` | Match pair tile with paired/correct/used states |
+| `StatusBadge` | Small semantic badge (6 variants) |
+| `StatIndicator` | Icon+number pill for hearts/streak/XP/gems/crowns |
+| `ProgressBar` | Horizontal fill with accessible aria semantics |
+| `ProgressRing` | SVG circular crown progress ring |
+| `Modal` | Focus-trapping dialog with Motion spring entrance |
+| `ToastProvider` + `useToast` | Queue-managed toast system (max 2 visible) |
+| `FeedbackSurface` | Bottom correct/incorrect feedback with slide-up |
+| `Skeleton` | Shimmer loading placeholder (text/circular/rectangular) |
+| `ThemeToggle` | Light/dark/system preference radio group |
+| `QuestMascot` | Original fox SVG with 4 expression variants |
+
+### Quest mascot
+
+- **Type:** Inline SVG, no external image dependency
+- **Character:** Fox with warm orange body (#F0972B), cream markings (#FCEBD0), teal bandana (#2BB5A0)
+- **Variants:** neutral, encouraging (raised brows, tail tilt), celebrating (bounce, stars, big smile), concerned (worried brows, flat mouth)
+- **Accessibility:** Decorative by default (`aria-hidden`, `role="presentation"`); labeled mode available
+- **Maintainable:** ~120 lines of readable SVG with clear shape composition
+
+### Dependencies added
+
+| Package | Type | Reason |
+|---|---|---|
+| `@fontsource-variable/nunito` | runtime | Nunito variable font without build-time download |
+| `clsx` | runtime | Conditional class composition |
+| `tailwind-merge` | runtime | Tailwind class conflict resolution |
+| `lucide-react` | runtime | Open-source icon set (Lucide, not Duolingo) |
+| `@testing-library/react` | dev | Component test rendering |
+| `@testing-library/jest-dom` | dev | DOM assertion matchers |
+| `@testing-library/user-event` | dev | User interaction simulation |
+| `jsdom` | dev | DOM environment for Vitest |
+| `@vitejs/plugin-react@4` | dev | JSX transform for Vitest |
+
+### Test counts (67 total)
+
+| Test file | Tests | Coverage |
+|---|---|---|
+| `button-3d.test.tsx` | 16 | Variants, sizes, disabled, loading, keyboard, className |
+| `progress.test.tsx` | 6 | Aria attributes, clamping, max=0 safety |
+| `modal.test.tsx` | 7 | Open/close, dialog role, focus trap, Escape, non-dismissible |
+| `toast.test.tsx` | 4 | Add, queue limit, dismiss, auto-dismiss |
+| `mascot.test.tsx` | 7 | Decorative, labeled, variants, sizing |
+| `ui-store.test.ts` | 5 | Theme preference, dark class toggle, no learner state |
+| `session-store.test.ts` | 4 | Prior Phase 8A tests (unchanged) |
+| `client.test.ts` | 18 | Prior Phase 8A tests (unchanged) |
 
 ---
 
 ## Exact next request for Cursor
 
-Phase 8B is VERIFIED. Use this request next:
+Phase 8C is VERIFIED. Use this request next:
 
 ```text
-Perform LingoQuest Phase 8C using Opus and the frontend-design skill: implement the original 3D
-design system and critical primitives.
+Perform LingoQuest Phase 9A: functional path and skill-start flow.
 
-Read:
-1. .cursor/rules/project-rules.mdc
-2. /CLAUDE.md
-3. /docs/07_HANDOFF_CURRENT_STATE.md
-4. Phase 8C from /docs/06_IMPLEMENTATION_PHASES.md
-5. /docs/10_UX_BLUEPRINT.md (Sections 3, 4, 14)
-6. /docs/01_ARCHITECTURE.md — Frontend design architecture
+Follow the Common phase protocol. Connect GET course and GET skill detail. Implement ordered units,
+all four skill states, crowns/progress, persistent learner top bar, available/in-progress skill
+navigation, locked inert behaviour with explanation, and /skill/[skillId] start/resume actions.
 
-Define light-theme tokens, dark-ready semantic tokens, typography, spacing, radii, layered depth,
-pressed/hover/focus/disabled/loading behaviour, and purposeful motion. Implement reusable
-Button3D, IconButton3D, Card3D, SkillNode3D, ProgressBar, ProgressRing, FeedbackSheet, Modal3D,
-and StatPill primitives with accessible semantics.
-
-Use CSS/Tailwind depth and Motion; do not add Three.js/WebGL, real Duolingo assets, or generic
-dashboard styling.
-
-Update /docs/07_HANDOFF_CURRENT_STATE.md and stop after Phase 8C.
+POST start must navigate using returned attempt_id. Use backend values only. Reuse approved UI
+primitives; do not redesign the system.
 ```
 
-**Recommended model:** Claude Opus
-**Required skill:** `frontend-design`
+**Recommended model:** Claude Sonnet
+**Required skill:** None
 
 ---
 

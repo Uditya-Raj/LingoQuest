@@ -1,9 +1,16 @@
-import type { Metadata } from 'next'
+import type { Metadata, Viewport } from 'next'
+import '@fontsource-variable/nunito'
 import './globals.css'
+import { ThemeScript } from '@/components/ui/theme-script'
 
 export const metadata: Metadata = {
   title: 'LingoQuest',
   description: 'Original language learning with a tactile 3D experience',
+}
+
+export const viewport: Viewport = {
+  width: 'device-width',
+  initialScale: 1,
 }
 
 export default function RootLayout({
@@ -12,7 +19,10 @@ export default function RootLayout({
   children: React.ReactNode
 }) {
   return (
-    <html lang="en">
+    <html lang="en" suppressHydrationWarning>
+      <head>
+        <ThemeScript />
+      </head>
       <body>{children}</body>
     </html>
   )
