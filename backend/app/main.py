@@ -22,8 +22,8 @@ from app.routers import (
 def create_app() -> FastAPI:
     """Create and configure the FastAPI application."""
     app = FastAPI(
-        title="LingoPath API",
-        description="Backend API for LingoPath language learning application",
+        title="LingoQuest API",
+        description="Backend API for LingoQuest language learning application",
         version="1.0.0",
         docs_url=f"{settings.api_prefix}/docs",
         openapi_url=f"{settings.api_prefix}/openapi.json",

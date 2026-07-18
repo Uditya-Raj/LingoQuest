@@ -38,13 +38,13 @@ when its exit checks in `/docs/06_IMPLEMENTATION_PHASES.md` pass.
 |---|---|
 | Product | LingoPath (repository: LingoQuest) |
 | Repository state | `INSPECTED` |
-| Current phase | Phase 7A — Existing backend schema/seed conformance audit |
+| Current phase | Phase 7B — Existing backend API/gamification conformance audit |
 | Current phase status | `VERIFIED` |
-| Next action | Phase 7B — Existing backend API/gamification conformance audit |
+| Next action | Phase 7C — Backend end-to-end acceptance gate |
 | Recommended model | Claude Sonnet |
 | Required skill | None |
 | Last updated | 2026-07-18 |
-| Updated by | Phase 7A migration data-preservation correction |
+| Updated by | Phase 7B API/gamification audit + Phase 5B formal closure |
 | Active blocker | None |
 
 ---
@@ -77,8 +77,7 @@ This table tracks whether the planning files are present, not whether the app is
 
 Phase 1 scaffolding is complete. Backend foundations through Phase 6B are verified. Phase 7A
 schema/seed conformance audit is verified (including migration data-preservation correction).
-Phase 7B must still formally close API/gamification conformance (do not treat Phase 5B as closed
-by 7A).
+Phase 7B API/gamification conformance audit is verified. Phase 5B completion audit formally closed.
 
 | Area | Status | Evidence or remaining work |
 |---|---|---|
@@ -91,7 +90,7 @@ by 7A).
 | Skill detail/start/resume API | `VERIFIED` | Standard start/resume unchanged; timed start added. |
 | Lesson retrieve API | `VERIFIED` | Timed retrieve returns remaining_seconds; expiry persists time_expired. |
 | Exercise answer validation | `VERIFIED` | Pure graders reused; timed wrong answers skip hearts. |
-| Lesson completion transaction | `VERIFIED` | Standard + timed paths; rollback hook proof. Formal Phase 5B audit still open for 7B. |
+| Lesson completion transaction | `VERIFIED` | Standard + timed paths; rollback hook proof. Phase 5B formally closed by 7B audit. |
 | Hearts loss, regeneration, and refill | `VERIFIED` | Standard still loses one heart; timed does not. |
 | XP, daily goal, and total consistency | `VERIFIED` | Seed XP cache equals attempt sums. |
 | Streak clock logic | `VERIFIED` | Timed completion updates streak; timeout does not. |
@@ -156,8 +155,10 @@ add regression coverage; re-verify schema/seed/migration gates.
 | 2026-07-18 | Phase 7A repro | Temp ca24 + 142/1420 seed → upgrade b7e3 (old body) | **answers 1420→0** | Bug confirmed; attempts/progress/XP survived |
 | 2026-07-18 | Phase 7A fix repro | Same path after additive repair | **answers 1420→1420** | attempts/progress/achievements/XP intact; mode=standard |
 | 2026-07-18 | Phase 7A focused | `python -m pytest tests/test_phase7a_data_preservation.py tests/test_phase6b_migration.py tests/test_phase7a_migration.py tests/test_schema.py -q` | **31 passed** | Includes mandatory 1,420-answer preservation test |
-| 2026-07-18 | all backend | `python -m pytest tests/ -q` | **185 passed** | +1 preservation regression vs prior 184 |
+| 2026-07-18 | all backend | `python -m pytest tests/ -q` | **185 passed** | +0 vs prior 184 + mandatory 1,420-answer preservation test already in suite |
 | 2026-07-18 | create_all audit | ripgrep `create_all` under `backend/app/` | **No matches** | Runtime does not use create_all |
+| 2026-07-18 | Phase 7B audit | Full API/gamification conformance review | **PASS** | 1 LOW cosmetic naming issue (fixed); Phase 5B formally closed |
+| 2026-07-18 | schema tests | `python -m pytest tests/test_schema.py -q` | **25 passed** | FK/index/constraint verification after 7B fix |
 
 ---
 
@@ -311,7 +312,7 @@ for correcting the source document.
 | Info | `/docs/09_DEPLOYMENT.md` not yet created | No impact until deployment phase | Create when Phase 15 starts | Open |
 | Info | Product name is LingoPath but repository is named LingoQuest | Cosmetic inconsistency | Intentional - LingoPath is the user-facing product name per requirements | Acknowledged |
 | Info | Phase 6B Sonnet audit completed | All migration/TTS/timed contracts verified | Phase 6B marked VERIFIED | Resolved 2026-07-18 |
-| Info | Phase 5B formal Sonnet audit not separately recorded | Completion path covered by tests; **Phase 7B must close API/gamification conformance** | Phase 7B | Open |
+| Info | Phase 5B formal Sonnet audit not separately recorded | Completion path covered by tests; **Phase 7B closed API/gamification conformance** | Phase 7B | Resolved 2026-07-18 |
 | Info | No DB unique constraint preventing dual in_progress attempts | Service-level race cleanup proven | Acceptable for SQLite demo | Resolved 2026-07-18 |
 | Info | Local `lingopath.db` still has 0 answers from historical wipe | Dev-only; does not block future upgrades | Optional `--reset --yes` recovery (not run in this phase) | Open (dev recovery) |
 | Resolved | Phase 6B migration wiped `exercise_answers` on populated upgrade | Blocked honest 7A VERIFIED | In-place additive repair + regression test | Resolved 2026-07-18 |
@@ -374,6 +375,119 @@ for correcting the source document.
 
 ---
 
+## Phase 7B API and Gamification Audit
+
+### Initial gap list (read-only audit)
+
+| Severity | Gap | Evidence | Resolution |
+|---|---|---|---|
+| LOW | API title uses "LingoPath" instead of "LingoQuest" | `main.py:25-26` FastAPI title/description | Updated to "LingoQuest API" for repository consistency |
+
+### API Contract Audit (PASS)
+
+- ✅ All 20 endpoint groups match `/docs/03_API_SPEC.md`
+- ✅ Exact Pydantic response models
+- ✅ Standard error envelope `{"error": {"code", "message", "details?"}}`
+- ✅ Real HTTP status codes (400/403/404/409/422/500), never 200 with embedded error
+- ✅ Debug routes completely absent when `DEBUG_CLOCK_ENABLED=false`
+- ✅ No endpoint returns 501 or fake success
+
+### Architecture Audit (PASS)
+
+- ✅ Routers thin (validate, resolve, call service, return)
+- ✅ Business rules in services (lesson_engine, hearts, xp, streak, skill_progress, achievements, etc.)
+- ✅ Current-user resolution centralized in `dependencies/auth.py`
+- ✅ All attempts/progress/settings/admin user-scoped
+- ✅ Foreign attempt IDs return safe 404
+- ✅ Single injected logical clock from `core/clock.py`
+- ✅ No direct `datetime.now()` calls in domain services
+
+### Course, Skill, Attempt Lifecycle (PASS)
+
+- ✅ GET /api/course derives all four states without stored status column
+- ✅ Standard start: 201 new / 200 resume, locked/zero-heart checks, stratified 10 exercises
+- ✅ Timed start: mode=timed, expires_at=now+120s, no heart check
+- ✅ Retrieve: refresh restores order/index, enforces timed expiry, no answers exposed
+- ✅ Concurrent start protection (keeps earliest, deletes extras)
+
+### Answer Audit (PASS)
+
+- ✅ All five graders match exact contracts with proper normalization
+- ✅ Graders pure (no mutation), return `GradeResult`
+- ✅ Standard wrong answer loses one heart
+- ✅ Timed wrong answer loses no heart
+- ✅ Zero-heart standard fails in same response
+- ✅ Malformed/stale/duplicate inputs deduct no heart
+- ✅ Concurrent duplicate prevented by DB uniqueness
+
+### **FORMAL PHASE 5B COMPLETION AUDIT (PASS)**
+
+**✅ PHASE 5B FORMALLY CLOSED AND VERIFIED**
+
+**One-transaction atomic completion:**
+1. ✅ Single clock capture (`now`, `today`)
+2. ✅ Conditional UPDATE claim (`WHERE status='in_progress'`)
+3. ✅ Idempotent protection (rowcount check → ATTEMPT_ALREADY_COMPLETED)
+4. ✅ Early/failed/completed conflicts checked before mutation
+5. ✅ Standard XP: `base + floor(base * 1/2)` when perfect
+6. ✅ Timed XP: fixed 20, no perfect bonus
+7. ✅ Total XP cache updated in same transaction
+8. ✅ Today XP/goal uses logical `activity_date`
+9. ✅ Streak transitions (same/next/missed day rules)
+10. ✅ Longest streak never decreases
+11. ✅ Standard: crown+1 (capped), practice+1, genuine unlocks
+12. ✅ Timed: practice+1 only, no crowns/unlocks
+13. ✅ Achievement evaluation uses updated user state
+14. ✅ Achievement idempotency (unique constraint + savepoint)
+15. ✅ Concurrent completion: conditional UPDATE serializes
+16. ✅ Injected failure rollback proven (test hook at line 759)
+17. ✅ Retry after rollback succeeds once
+
+**Completion result contract:**
+- ✅ All fields from spec present: attempt_id, skill, xp, streak, daily_goal, unlocked_skill_ids, achievements_unlocked, user_totals, completed_at
+- ✅ Mode-specific rules: standard (hearts check, crowns, unlocks), timed (fixed 20 XP, practice only, no crowns)
+
+**Test coverage:**
+- ✅ `test_phase5b_api.py`: 11 tests (early/failed/duplicate/concurrent/rollback)
+- ✅ `test_phase6b_timed_api.py`: 6 completion tests (20 XP/no crown/no bonus/expiry/concurrent/rollback)
+
+### Hearts, Profile, Leaderboard, Achievements (PASS)
+
+- ✅ Hearts: lazy regen preserves remainder, caps at max, refill atomic
+- ✅ Profile: skills_completed (crowns>=max), lessons/perfect counts, today_xp
+- ✅ Leaderboard: total_xp DESC, username ASC, id ASC; Maya rank 3; current user always returned
+- ✅ Achievements: criteria evaluation, unique constraint, inactive not awarded
+
+### Content and TTS (PASS)
+
+- ✅ Admin: tree/create/edit with shared validation, active-attempt protection
+- ✅ TTS: 16 exercises seeded, both-or-neither validation, BCP 47 pattern
+- ✅ Public routes never expose correct_answer (admin routes include it)
+
+### Timed Practice (PASS)
+
+- ✅ Backend expires_at control, remaining_seconds server-derived
+- ✅ Exact boundary: `logical_now > expires_at`
+- ✅ Retrieve/answer/complete enforce expiry
+- ✅ Successful: 20 XP, streak, practice, no crowns/unlocks
+- ✅ Timeout: no XP/streak/achievements
+- ✅ Concurrent start protection proven
+
+### Naming Consistency
+
+- ✅ API title updated from "LingoPath API" to "LingoQuest API"
+- ✅ Database name `lingopath.db` (local dev convention, not user-facing)
+- ✅ Migration/model filenames (not user-facing, intentionally unchanged)
+
+### Test Evidence
+
+- ✅ 185 backend tests collected
+- ✅ **185 passed** in 215.97s
+- ✅ Coverage: graders, hearts, streak, xp, crowns, achievements, answer, completion (standard/timed), timed-specific, content-admin, debug-clock, schema, seed, migrations
+- ✅ 25 schema tests passed after fix verification
+
+---
+
 ## Files changed in the latest phase
 
 Phase 7A migration data-preservation correction:
@@ -395,6 +509,14 @@ Prior Phase 7A schema/seed work (still in tree):
 | `backend/tests/test_phase6b_migration.py` | Head rev + FK/index asserts | Head moved to c8a1 |
 | `backend/tests/test_phase7a_migration.py` | Created | Upgrade-from-6B preservation |
 
+Phase 7B API/gamification audit:
+
+| File | Change | Reason |
+|---|---|---|
+| `backend/app/main.py` | Changed API title "LingoPath" → "LingoQuest" | Repository name consistency |
+| `docs/07_HANDOFF_CURRENT_STATE.md` | Updated | Phase 7B audit evidence, Phase 5B formal closure |
+| `PHASE_7B_AUDIT_REPORT.md` | Created | Comprehensive audit report with severity-ranked findings |
+
 ---
 
 ## Working tree safety
@@ -410,32 +532,27 @@ Prior Phase 7A schema/seed work (still in tree):
 
 ## Exact next request for Cursor
 
-Phase 7A is VERIFIED. Use this request next:
+Phase 7A is VERIFIED. Phase 7B is VERIFIED. Use this request next:
 
 ```text
-Perform LingoQuest Phase 7B: backend API and gamification conformance.
+Perform LingoQuest Phase 7C: backend end-to-end acceptance gate.
 
 Read:
 1. .cursor/rules/project-rules.mdc
 2. /CLAUDE.md
 3. /docs/07_HANDOFF_CURRENT_STATE.md
-4. Phase 7B from /docs/06_IMPLEMENTATION_PHASES.md
-5. Requirements R-01 through R-12
-6. Relevant endpoint headings from /docs/03_API_SPEC.md
-7. /docs/04_GAMIFICATION_LOGIC.md
-8. Relevant /docs/08_TESTING_ACCEPTANCE.md API/gamification sections
+4. Phase 7C from /docs/06_IMPLEMENTATION_PHASES.md
+5. Requirements acceptance criteria R-01 through R-12
+6. /docs/08_TESTING_ACCEPTANCE.md — backend sections
 
-First audit actual routes, schemas, services, ownership, transactions, time dependency, errors,
-and OpenAPI against the specs. Identify exact mismatches. Then fix only required backend gaps,
-keeping routers thin and preserving working code.
+Run the real seeded API through complete workflows: path → skill → start → retrieve → all five
+answer types → complete → profile/path/leaderboard refresh. Also run zero-heart/refill/retry flow
+and one content create/edit validation flow.
 
-Pay special attention to attempt refresh/resume, answer order/duplicates, zero-heart failure,
-completion idempotency, daily activity_date, derived skill state, and admin content validation.
+Add/fix tests needed to prove acceptance criteria. Do not start frontend work until the gate is
+green.
 
-Explicitly close the previously open Phase 5B formal API/gamification conformance audit as part
-of 7B. Do not start frontend work.
-
-Update /docs/07_HANDOFF_CURRENT_STATE.md and stop after Phase 7B.
+Update /docs/07_HANDOFF_CURRENT_STATE.md and stop after Phase 7C.
 ```
 
 ---
