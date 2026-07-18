@@ -23,6 +23,8 @@ class AdminExerciseRepresentation(BaseModel):
     type: ExerciseType
     prompt: str
     audio_url: Optional[str] = None
+    tts_text: Optional[str] = None
+    tts_lang: Optional[str] = None
     options: Any = None
     correct_answer: dict[str, Any]
     metadata: Optional[dict[str, Any]] = None
@@ -70,6 +72,8 @@ class AdminExerciseCreateRequest(BaseModel):
     type: ExerciseType
     prompt: str
     audio_url: Optional[str] = None
+    tts_text: Optional[str] = None
+    tts_lang: Optional[str] = None
     options: Any = None
     correct_answer: dict[str, Any]
     metadata: Optional[dict[str, Any]] = None
@@ -86,6 +90,8 @@ class AdminExercisePatchRequest(BaseModel):
     type: Optional[ExerciseType] = None
     prompt: Optional[str] = None
     audio_url: Optional[str] = None
+    tts_text: Optional[str] = None
+    tts_lang: Optional[str] = None
     options: Any = None
     correct_answer: Optional[dict[str, Any]] = None
     metadata: Optional[dict[str, Any]] = None

@@ -126,6 +126,8 @@ class Exercise(Base):
     type: Mapped[str] = mapped_column(String, nullable=False)
     prompt: Mapped[str] = mapped_column(Text, nullable=False)
     audio_url: Mapped[Optional[str]] = mapped_column(String, nullable=True)
+    tts_text: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    tts_lang: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     options: Mapped[Optional[dict]] = mapped_column(JSON, nullable=True)
     correct_answer: Mapped[dict] = mapped_column(JSON, nullable=False)
     exercise_metadata: Mapped[Optional[dict]] = mapped_column("metadata", JSON, nullable=True)

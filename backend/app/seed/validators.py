@@ -6,7 +6,35 @@ These validators are reused by:
 - Runtime grading
 """
 from typing import Any
+import re
 from pydantic import BaseModel, Field, field_validator, model_validator, RootModel
+
+
+# BCP 47 language tag (simplified): language[-script|region|variant]*
+_BCP47_LANG_RE = re.compile(r"^[A-Za-z]{2,3}(?:-[A-Za-z0-9]{2,8})*$")
+
+
+def validate_tts_fields(tts_text: str | None, tts_lang: str | None) -> None:
+    """Validate optional TTS fields.
+
+    Both must be present together, or both omitted/null.
+    Rejects blank text and invalid BCP 47 language tags.
+    """
+    if tts_text is None and tts_lang is None:
+        return
+
+    if tts_text is None or tts_lang is None:
+        raise ValueError("tts_text and tts_lang must both be provided or both omitted")
+
+    if not str(tts_text).strip():
+        raise ValueError("tts_text must be non-empty")
+
+    lang = str(tts_lang).strip()
+    if not lang:
+        raise ValueError("tts_lang must be non-empty")
+
+    if not _BCP47_LANG_RE.match(lang):
+        raise ValueError(f"Invalid tts_lang BCP 47 language tag: {tts_lang}")
 
 
 class MultipleChoiceOption(BaseModel):
@@ -136,6 +164,8 @@ def validate_exercise_contract(
     prompt: str,
     options: Any,
     correct_answer: dict[str, Any],
+    tts_text: str | None = None,
+    tts_lang: str | None = None,
 ) -> None:
     """Validate exercise contract for any type.
     
@@ -146,10 +176,14 @@ def validate_exercise_contract(
         prompt: Exercise prompt text
         options: Type-specific options (may be None)
         correct_answer: Type-specific correct answer
+        tts_text: Optional Speech Synthesis text
+        tts_lang: Optional BCP 47 language tag for TTS
     """
     # Common validation
     if not prompt or not prompt.strip():
         raise ValueError("Prompt must be non-empty")
+
+    validate_tts_fields(tts_text, tts_lang)
     
     # Type-specific validation
     if exercise_type == "multiple_choice":

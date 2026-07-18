@@ -23,6 +23,9 @@ class LessonAttempt(Base):
     completed_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
     activity_date: Mapped[Optional[date]] = mapped_column(Date, nullable=True)
     status: Mapped[str] = mapped_column(String, nullable=False, default="in_progress")
+    mode: Mapped[str] = mapped_column(String, nullable=False, default="standard")
+    expires_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
+    failure_reason: Mapped[Optional[str]] = mapped_column(String, nullable=True)
     exercise_order: Mapped[list] = mapped_column(JSON, nullable=False)
     current_index: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
     mistakes_count: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
@@ -33,6 +36,14 @@ class LessonAttempt(Base):
         CheckConstraint(
             "status IN ('in_progress', 'completed', 'failed')",
             name="ck_lesson_attempts_status_valid"
+        ),
+        CheckConstraint(
+            "mode IN ('standard', 'timed')",
+            name="ck_lesson_attempts_mode_valid"
+        ),
+        CheckConstraint(
+            "failure_reason IS NULL OR failure_reason IN ('out_of_hearts', 'time_expired')",
+            name="ck_lesson_attempts_failure_reason_valid"
         ),
         CheckConstraint("current_index >= 0", name="ck_lesson_attempts_index_positive"),
         CheckConstraint("mistakes_count >= 0", name="ck_lesson_attempts_mistakes_positive"),

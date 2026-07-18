@@ -117,8 +117,6 @@ async def apply_standard_crown_and_unlocks(
 ) -> tuple[UserSkillProgress, list[int]]:
     """
     Increment crowns (capped) and practice count; return newly unlocked skill IDs.
-
-    Timed-mode practice-only updates are staged for Phase 6B.
     """
     if user.active_course_id is None:
         course_skills = [skill]
@@ -144,3 +142,21 @@ async def apply_standard_crown_and_unlocks(
 
     newly_unlocked = sorted(after_unlocked - before_unlocked)
     return progress, newly_unlocked
+
+
+async def apply_timed_practice_update(
+    session: AsyncSession,
+    user: User,
+    skill: Skill,
+    completed_at: datetime,
+) -> UserSkillProgress:
+    """
+    Timed completion: increment practice count only.
+
+    Does not add crowns or unlock dependent skills.
+    """
+    progress = await get_or_create_progress(session, user.id, skill.id)
+    progress.times_practiced += 1
+    progress.last_practiced_at = completed_at
+    await session.flush()
+    return progress

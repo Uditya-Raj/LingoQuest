@@ -33,6 +33,8 @@ def _serialize_exercise(exercise: Exercise) -> AdminExerciseRepresentation:
         type=exercise.type,  # type: ignore[arg-type]
         prompt=exercise.prompt,
         audio_url=exercise.audio_url,
+        tts_text=exercise.tts_text,
+        tts_lang=exercise.tts_lang,
         options=exercise.options,
         correct_answer=exercise.correct_answer,
         metadata=exercise.exercise_metadata,
@@ -47,9 +49,18 @@ def _validate_or_raise(
     prompt: str,
     options: Any,
     correct_answer: dict[str, Any],
+    tts_text: str | None = None,
+    tts_lang: str | None = None,
 ) -> None:
     try:
-        validate_exercise_contract(exercise_type, prompt, options, correct_answer)
+        validate_exercise_contract(
+            exercise_type,
+            prompt,
+            options,
+            correct_answer,
+            tts_text=tts_text,
+            tts_lang=tts_lang,
+        )
     except ValueError as exc:
         raise DomainError(
             code="INVALID_EXERCISE_CONTRACT",
@@ -147,7 +158,14 @@ async def create_exercise(
     if lesson is None:
         raise NotFoundError("Lesson", body.lesson_id)
 
-    _validate_or_raise(body.type, body.prompt, body.options, body.correct_answer)
+    _validate_or_raise(
+        body.type,
+        body.prompt,
+        body.options,
+        body.correct_answer,
+        tts_text=body.tts_text,
+        tts_lang=body.tts_lang,
+    )
 
     exercise = Exercise(
         lesson_id=body.lesson_id,
@@ -155,6 +173,8 @@ async def create_exercise(
         type=body.type,
         prompt=body.prompt,
         audio_url=body.audio_url,
+        tts_text=body.tts_text,
+        tts_lang=body.tts_lang,
         options=body.options,
         correct_answer=body.correct_answer,
         exercise_metadata=body.metadata,
@@ -182,7 +202,6 @@ async def patch_exercise(
     Merge patch onto stored exercise, validate complete contract, then persist.
 
     Rejects edits when the exercise is referenced by an in-progress attempt.
-    TTS fields (tts_text/tts_lang) are staged for Phase 6B.
     """
     exercise = (
         await session.execute(select(Exercise).where(Exercise.id == exercise_id))
@@ -216,8 +235,21 @@ async def patch_exercise(
         if "correct_answer" in patch_data
         else deepcopy(exercise.correct_answer)
     )
+    merged_tts_text = (
+        patch_data["tts_text"] if "tts_text" in patch_data else exercise.tts_text
+    )
+    merged_tts_lang = (
+        patch_data["tts_lang"] if "tts_lang" in patch_data else exercise.tts_lang
+    )
 
-    _validate_or_raise(merged_type, merged_prompt, merged_options, merged_answer)
+    _validate_or_raise(
+        merged_type,
+        merged_prompt,
+        merged_options,
+        merged_answer,
+        tts_text=merged_tts_text,
+        tts_lang=merged_tts_lang,
+    )
 
     if "lesson_id" in patch_data:
         new_lesson = (
@@ -237,6 +269,10 @@ async def patch_exercise(
         exercise.prompt = patch_data["prompt"]
     if "audio_url" in patch_data:
         exercise.audio_url = patch_data["audio_url"]
+    if "tts_text" in patch_data:
+        exercise.tts_text = patch_data["tts_text"]
+    if "tts_lang" in patch_data:
+        exercise.tts_lang = patch_data["tts_lang"]
     if "options" in patch_data:
         exercise.options = patch_data["options"]
     if "correct_answer" in patch_data:

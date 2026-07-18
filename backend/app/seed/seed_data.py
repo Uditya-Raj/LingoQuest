@@ -147,13 +147,15 @@ async def seed_course_content(session: AsyncSession) -> dict[str, list[Any]]:
         exercises_def = get_exercises_for_skill(skill_index)
         
         for ex_def in exercises_def:
-            # Validate contract
+            # Validate contract (including optional TTS fields)
             try:
                 validate_exercise_contract(
                     exercise_type=ex_def["type"],
                     prompt=ex_def["prompt"],
                     options=ex_def["options"],
                     correct_answer=ex_def["correct_answer"],
+                    tts_text=ex_def.get("tts_text"),
+                    tts_lang=ex_def.get("tts_lang"),
                 )
             except ValueError as e:
                 print(f"    INVALID CONTRACT: {e}")
@@ -175,7 +177,9 @@ async def seed_course_content(session: AsyncSession) -> dict[str, list[Any]]:
                     order_index=ex_def["order_index"],
                     type=ex_def["type"],
                     prompt=ex_def["prompt"],
-                    audio_url=ex_def["audio_url"],
+                    audio_url=ex_def.get("audio_url"),
+                    tts_text=ex_def.get("tts_text"),
+                    tts_lang=ex_def.get("tts_lang"),
                     options=ex_def["options"],
                     correct_answer=ex_def["correct_answer"],
                     exercise_metadata=ex_def["metadata"],
@@ -184,6 +188,16 @@ async def seed_course_content(session: AsyncSession) -> dict[str, list[Any]]:
                 session.add(exercise)
                 total_exercises += 1
                 type_counts[ex_def["type"]] += 1
+            else:
+                # Safe content-definition update (does not touch learner progress).
+                exercise.type = ex_def["type"]
+                exercise.prompt = ex_def["prompt"]
+                exercise.audio_url = ex_def.get("audio_url")
+                exercise.tts_text = ex_def.get("tts_text")
+                exercise.tts_lang = ex_def.get("tts_lang")
+                exercise.options = ex_def["options"]
+                exercise.correct_answer = ex_def["correct_answer"]
+                exercise.exercise_metadata = ex_def["metadata"]
     
     await session.flush()
     print(f"  Exercises created: {total_exercises}")

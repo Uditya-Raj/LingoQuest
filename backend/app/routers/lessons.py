@@ -43,6 +43,29 @@ async def start_lesson(
     return attempt_response
 
 
+@router.post("/skills/{skill_id}/start-timed", response_model=LessonAttemptResponse)
+async def start_timed_lesson(
+    skill_id: int,
+    response: Response,
+    session: AsyncSession = Depends(get_session),
+    user: User = Depends(get_current_user),
+):
+    """
+    Start a timed-practice attempt for an unlocked skill.
+
+    Does not check hearts. Duration and expiry are set only by the backend.
+    Returns 201 for a new timed attempt, 200 when returning an existing active attempt.
+    """
+    attempt_response, is_new = await lesson_engine.start_timed_practice(
+        session, user, skill_id
+    )
+    if is_new:
+        response.status_code = status.HTTP_201_CREATED
+    else:
+        response.status_code = status.HTTP_200_OK
+    return attempt_response
+
+
 @router.get("/lessons/{attempt_id}", response_model=LessonAttemptResponse, status_code=status.HTTP_200_OK)
 async def get_lesson_attempt(
     attempt_id: int,

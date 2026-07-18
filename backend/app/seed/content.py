@@ -105,7 +105,54 @@ def get_exercises_for_skill(skill_index: int) -> list[dict[str, Any]]:
         _get_questions_exercises(),
     ]
     
-    return exercises_by_skill[skill_index]
+    exercises = exercises_by_skill[skill_index]
+    _apply_seed_tts(skill_index, exercises)
+    return exercises
+
+
+# At least three TTS-enabled exercises per skill; all five types across the course.
+# Original Spanish text; tts_lang is normally es-ES.
+_SEED_TTS: dict[int, dict[int, tuple[str, str]]] = {
+    0: {  # Greetings — MC, word bank, match, fill
+        0: ("hola", "es-ES"),
+        3: ("Buenas tardes", "es-ES"),
+        5: ("adiós", "es-ES"),
+        7: ("Me llamo Ana", "es-ES"),
+    },
+    1: {  # Basics — MC, fill, type
+        0: ("yo soy", "es-ES"),
+        7: ("Ella es estudiante", "es-ES"),
+        9: ("el libro", "es-ES"),
+    },
+    2: {  # Food — word bank, match, type
+        3: ("Yo bebo agua", "es-ES"),
+        5: ("pan", "es-ES"),
+        9: ("la manzana", "es-ES"),
+    },
+    3: {  # Family — MC, match, fill
+        0: ("madre", "es-ES"),
+        5: ("hermana", "es-ES"),
+        7: ("Mi padre es alto", "es-ES"),
+    },
+    4: {  # Questions — word bank, fill, type
+        3: ("¿Dónde está?", "es-ES"),
+        7: ("¿Qué es esto?", "es-ES"),
+        9: ("quién", "es-ES"),
+    },
+}
+
+
+def _apply_seed_tts(skill_index: int, exercises: list[dict[str, Any]]) -> None:
+    """Attach original TTS fields to selected exercises without changing row counts."""
+    mapping = _SEED_TTS.get(skill_index, {})
+    for exercise in exercises:
+        pair = mapping.get(exercise["order_index"])
+        if pair is None:
+            exercise.setdefault("tts_text", None)
+            exercise.setdefault("tts_lang", None)
+        else:
+            exercise["tts_text"] = pair[0]
+            exercise["tts_lang"] = pair[1]
 
 
 def _get_greetings_exercises() -> list[dict[str, Any]]:

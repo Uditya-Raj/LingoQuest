@@ -39,8 +39,7 @@ def calculate_standard_xp(base_xp: int, mistakes_count: int) -> XpAward:
     """
     Award lesson XP plus floor(base/2) perfect bonus when mistakes_count == 0.
 
-    Timed-mode fixed 20 XP is staged for Phase 6B; callers must not use this
-    helper for timed completions.
+    Timed-mode fixed 20 XP must use calculate_timed_xp instead.
     """
     perfect = mistakes_count == 0
     perfect_bonus = (
@@ -53,6 +52,19 @@ def calculate_standard_xp(base_xp: int, mistakes_count: int) -> XpAward:
         perfect_bonus=perfect_bonus,
         earned=base_xp + perfect_bonus,
         perfect=perfect,
+    )
+
+
+TIMED_PRACTICE_XP = 20
+
+
+def calculate_timed_xp(mistakes_count: int) -> XpAward:
+    """Fixed timed-practice XP: exactly 20, never a perfect bonus."""
+    return XpAward(
+        base=TIMED_PRACTICE_XP,
+        perfect_bonus=0,
+        earned=TIMED_PRACTICE_XP,
+        perfect=mistakes_count == 0,
     )
 
 
