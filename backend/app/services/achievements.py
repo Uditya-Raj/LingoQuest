@@ -11,6 +11,7 @@ from app.models.achievement import Achievement, UserAchievement
 from app.models.course import Skill
 from app.models.progress import LessonAttempt, UserSkillProgress
 from app.models.user import User
+from app.schemas.achievements import AchievementListItem, AchievementsListResponse
 
 
 async def count_skills_completed(session: AsyncSession, user_id: int) -> int:
@@ -104,10 +105,58 @@ async def evaluate_and_award_achievements(
                 )
                 await session.flush()
         except IntegrityError:
-            # Unique constraint: already awarded (concurrent or race).
             continue
 
         newly_awarded.append(achievement)
         already_earned.add(achievement.id)
 
     return newly_awarded
+
+
+async def list_achievements_for_user(
+    session: AsyncSession,
+    user: User,
+) -> AchievementsListResponse:
+    """
+    Return every active definition with earned state and live current_value.
+
+    Reads never create awards. Previously earned achievements stay earned even
+    when current_value later falls below the historical threshold.
+    """
+    active = (
+        await session.execute(
+            select(Achievement)
+            .where(Achievement.is_active.is_(True))
+            .order_by(Achievement.id)
+        )
+    ).scalars().all()
+
+    earned_rows = (
+        await session.execute(
+            select(UserAchievement).where(UserAchievement.user_id == user.id)
+        )
+    ).scalars().all()
+    earned_by_id = {ua.achievement_id: ua for ua in earned_rows}
+
+    items: list[AchievementListItem] = []
+    for achievement in active:
+        current = await criteria_current_value(
+            session, user, achievement.criteria_type
+        )
+        earned = achievement.id in earned_by_id
+        items.append(
+            AchievementListItem(
+                id=achievement.id,
+                key=achievement.key,
+                title=achievement.title,
+                description=achievement.description,
+                icon=achievement.icon,
+                criteria_type=achievement.criteria_type,
+                criteria_value=achievement.criteria_value,
+                current_value=current,
+                earned=earned,
+                earned_at=earned_by_id[achievement.id].earned_at if earned else None,
+            )
+        )
+
+    return AchievementsListResponse(achievements=items)

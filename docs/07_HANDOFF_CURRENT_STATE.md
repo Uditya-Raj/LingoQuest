@@ -38,14 +38,14 @@ when its exit checks in `/docs/06_IMPLEMENTATION_PHASES.md` pass.
 |---|---|
 | Product | LingoPath (repository: LingoQuest) |
 | Repository state | `INSPECTED` |
-| Current phase | Phase 5B — Completion and gamification |
-| Current phase status | `IMPLEMENTED_UNVERIFIED` |
-| Next action | Perform Sonnet audit of Phase 5B against exit checks, then mark VERIFIED if clean. |
-| Recommended model | Claude Sonnet |
-| Required skill | None for Phase 5B audit |
+| Current phase | Phase 6 — Remaining backend endpoints |
+| Current phase status | `VERIFIED` |
+| Next action | Perform Phase 6B: timed-practice backend + forward migration (mode/expires_at/failure_reason + TTS columns). |
+| Recommended model | Claude Sonnet (or Cursor Auto for routine work) |
+| Required skill | None for Phase 6B |
 | Last updated | 2026-07-18 |
-| Updated by | Phase 5B implementation (Cursor Auto) |
-| Active blocker | None. Phase 5B implemented and locally tested; Sonnet audit still required before VERIFIED. |
+| Updated by | Phase 6 implementation (Cursor Auto) |
+| Active blocker | None. Phase 6 standard endpoints verified. TTS admin persistence and timed practice staged for 6B. |
 
 ---
 
@@ -88,15 +88,18 @@ Phase 1 scaffolding is complete. Backend and frontend foundations are verified.
 | Skill detail/start/resume API | `VERIFIED` | GET /api/skills/{id}, POST /api/skills/{id}/start working with resume logic. |
 | Lesson retrieve API | `VERIFIED` | GET /api/lessons/{attempt_id} retrieves persisted attempts correctly. |
 | Exercise answer validation | `VERIFIED` | Pure graders for all five types; POST /api/lessons/{attempt_id}/answer with audit rows. |
-| Lesson completion transaction | `IMPLEMENTED_UNVERIFIED` | POST /api/lessons/{attempt_id}/complete; Auto tests pass; Sonnet audit pending. |
-| Hearts loss, regeneration, and refill | `IMPLEMENTED_UNVERIFIED` | Regen + loss (5A) + gem refill service (5B); HTTP refill route is Phase 6. |
-| XP, daily goal, and total consistency | `IMPLEMENTED_UNVERIFIED` | Standard XP + perfect bonus + today XP + goal cap; cache invariant asserted in tests. |
-| Streak clock logic | `VERIFIED` | Clock abstraction + streak service with same/next/missed/longest/clock-conflict. |
-| Crowns and server-derived locks | `IMPLEMENTED_UNVERIFIED` | Crown/practice + unlock transitions in skill_progress; path derivation reused. |
-| Achievement evaluation | `IMPLEMENTED_UNVERIFIED` | All four criteria types; unique-constraint idempotency; newly unlocked only. |
-| Profile API | `NOT_STARTED` | Not implemented. |
-| Leaderboard API | `NOT_STARTED` | Not implemented. |
-| Content-management API | `NOT_STARTED` | Not implemented. |
+| Lesson completion transaction | `IMPLEMENTED_UNVERIFIED` | Phase 5B complete path; Phase 6 regression smoke passed; dedicated Sonnet 5B audit still optional. |
+| Hearts loss, regeneration, and refill | `VERIFIED` | GET /api/hearts/status + POST /api/hearts/refill reuse Phase 5B service; Phase 6 tests pass. |
+| XP, daily goal, and total consistency | `IMPLEMENTED_UNVERIFIED` | Used by profile/completion; Phase 6 profile goal-edit tests pass. |
+| Streak clock logic | `VERIFIED` | Clock abstraction + streak service; debug clock drives streak/daily XP in Phase 6 tests. |
+| Crowns and server-derived locks | `IMPLEMENTED_UNVERIFIED` | Still via Phase 5B completion; path derivation unchanged. |
+| Achievement evaluation | `VERIFIED` | GET /api/achievements + completion awards; earned persists below later thresholds. |
+| Profile API | `VERIFIED` | GET/PATCH /api/user/me with real aggregates and goal recompute. |
+| Leaderboard API | `VERIFIED` | GET /api/leaderboard; Maya rank 3; updates after completion. |
+| Content-management API | `VERIFIED` | Tree + create/edit for all five types; merged patch; active-attempt protection. |
+| Debug logical clock | `VERIFIED` | Routes present only when `DEBUG_CLOCK_ENABLED=true`; absent (404) otherwise. |
+| Timed practice backend | `NOT_STARTED` | Staged for Phase 6B. |
+| TTS columns / admin TTS fields | `NOT_STARTED` | Staged for Phase 6B (no migration rewrite in Phase 6). |
 | Frontend API client/state foundation | `VERIFIED` | API client with error handling, health contracts, and Zustand store created. |
 | 3D design system and primitives | `NOT_STARTED` | Basic Tailwind setup complete, 3D primitives not yet implemented. |
 | Learning path UI | `NOT_STARTED` | Folder structure exists but no screens implemented. |
@@ -106,7 +109,7 @@ Phase 1 scaffolding is complete. Backend and frontend foundations are verified.
 | Content manager UI | `NOT_STARTED` | Not implemented. |
 | Responsive accessibility | `NOT_STARTED` | Not implemented. |
 | Dark mode bonus | `NOT_STARTED` | Zustand theme store created but no theme implementation. |
-| Automated test suite | `IMPLEMENTED_UNVERIFIED` | **131 passed** after Phase 5B (prior 95 + 36 Phase 5B). Sonnet audit pending. |
+| Automated test suite | `VERIFIED` | **152 passed** after Phase 6 (prior 131 + 21 Phase 6). |
 | Production builds | `VERIFIED` | Both frontend build and backend startup verified. |
 | Deployment and persistent SQLite | `NOT_STARTED` | Deferred; deployment spec missing. |
 | README and submission evidence | `NOT_STARTED` | No `README.md` exists. |
@@ -117,29 +120,31 @@ Phase 1 scaffolding is complete. Backend and frontend foundations are verified.
 
 ### Phase
 
-Phase 5B — Completion and gamification
+Phase 6 — Remaining backend endpoints
 
 ### Objective
 
-Implement atomic standard-mode lesson completion and gamification services.
+Implement remaining standard backend endpoints: hearts HTTP, profile/settings, leaderboard,
+achievements list, content admin, and development-only debug clock.
 
 ### Allowed work
 
-- POST /api/lessons/{attempt_id}/complete
-- XP, daily goal, streak, crowns/unlocks, achievements services
-- Heart refill service (HTTP route deferred to Phase 6)
-- Unit matrix + integration scenarios
-- Handoff update; status IMPLEMENTED_UNVERIFIED until Sonnet audit
+- GET/POST hearts status and refill
+- GET/PATCH /api/user/me
+- GET /api/leaderboard
+- GET /api/achievements
+- Admin content tree + exercise create/edit
+- Debug clock routes when enabled
+- Phase 6 API tests and full suite
 
 ### Exit evidence required
 
-- Gamification unit-test matrix passes
-- Early, failed, and duplicate completion conflict without effects
-- Successful completion updates all state atomically
-- Concurrent completion mutates once; rollback restores prior state
-- Profile/path/leaderboard sources agree after refresh
-- 20-gem refill works; failed refill spends nothing
-- Sonnet audit before VERIFIED (pending)
+- Every endpoint matches API spec / OpenAPI models — **passed**
+- Daily goal edit persists and recomputes progress — **passed**
+- Maya is rank three; current user always returned — **passed**
+- Admin create/edit validates all five types — **passed**
+- Debug endpoints absent unless enabled — **passed**
+- No placeholder 501 endpoints — **passed**
 
 ---
 
@@ -147,9 +152,10 @@ Implement atomic standard-mode lesson completion and gamification services.
 
 | Date | Category | Command | Result | Notes |
 |---|---|---|---|---|
-| 2026-07-18 | Phase 5B focused | `python -m pytest tests/test_gamification_unit.py tests/test_phase5b_api.py -v` | **36 passed** | Unit matrix + 13 integration scenarios |
-| 2026-07-18 | all backend | `python -m pytest tests/ -q` | **131 passed** | Prior 95 + 36 Phase 5B; no regressions |
-| 2026-07-18 | alembic | (unchanged) | Rev: ca24b65a41a3 (head) | Initial migration not edited; timed columns staged for 6B |
+| 2026-07-18 | Phase 6 focused | `python -m pytest tests/test_phase6_api.py -v` | **21 passed** | Hearts, profile, leaderboard, achievements, admin, debug, OpenAPI |
+| 2026-07-18 | all backend | `python -m pytest tests/ -q` | **152 passed** | Prior 131 + 21 Phase 6; no regressions |
+| 2026-07-18 | Phase 5B focused | `python -m pytest tests/test_gamification_unit.py tests/test_phase5b_api.py -v` | **36 passed** | Still green under Phase 6 suite |
+| 2026-07-18 | alembic | (unchanged) | Rev: ca24b65a41a3 (head) | No Phase 6 migration; TTS/timed columns staged for 6B |
 
 ---
 
@@ -171,19 +177,19 @@ not sufficient evidence for its buttons, persistence, errors, or responsive beha
 | Item | Verified value |
 |---|---|
 | Database engine/path | SQLite at `./lingopath.db` |
-| Current Alembic revision | ca24b65a41a3 (head) - initial schema; **no Phase 5B migration** |
+| Current Alembic revision | ca24b65a41a3 (head) - initial schema; **no Phase 6 migration** |
 | SQLite foreign keys enabled | Yes - verified via PRAGMA test and event listener in `database.py` |
 | Seed command | `python -m app.seed.seed_data [--reference-date YYYY-MM-DD] [--reset --yes]` |
 | Seed rerun behavior | Idempotent - detects existing Maya history and skips, no duplicates |
 | Default learner | Maya (maya_demo) - content admin, 340 XP, 6-day streak, 4 hearts, rank 3 |
 | Expected row counts match `/docs/05_SEED_DATA.md` | YES - 60 exercises, 5 users, 142 attempts, 1,420 answers, 25 progress rows (5 per user), 6 achievements |
-| XP consistency | ALL USERS - Zero difference between stored total_xp and computed attempt XP (asserted after every Phase 5B completion scenario) |
-| Exercise distribution | ALL SKILLS - Exactly 12 exercises per skill with required type distribution (3 MC, 2 WB, 2 MP, 2 FB, 3 TA) |
+| XP consistency | ALL USERS - Zero difference between stored total_xp and computed attempt XP |
+| Exercise distribution | ALL SKILLS - Exactly 12 exercises per skill with required type distribution |
 | Contract validation | Zero invalid exercise contracts - all 60 pass shared validators |
 | Foreign key integrity | Zero violations - PRAGMA foreign_key_check returns empty |
 | Active attempts | Zero - no in-progress seeded attempts |
 | Existing local data requiring preservation | None - fresh repository |
-| Staged schema (Phase 6B) | `mode`, `expires_at`, `failure_reason` not yet on `lesson_attempts`; standard completion only |
+| Staged schema (Phase 6B) | `lesson_attempts.mode`, `expires_at`, `failure_reason`; `exercises.tts_text`, `exercises.tts_lang` |
 
 ---
 
@@ -195,34 +201,41 @@ Fill the result and test reference after each endpoint group is verified.
 |---|---|---|
 | Course path and derived locks | **Verified** | `test_phase4_api.py::TestCourseAPI` |
 | Skill detail/start/retrieve/resume | **Verified** | `test_phase4_api.py` start/retrieve suites |
-| Lazy heart regeneration | **Verified** | `test_phase4_api.py::TestHeartRegeneration` |
+| Lazy heart regeneration | **Verified** | Phase 4 + Phase 6 hearts status regen |
 | All five answer shapes | **Verified** | `test_answer_grading.py` + `test_phase5a_api.py` |
 | Attempt ordering/idempotency/conflicts | **Verified** | Phase 5A API suite |
-| Completion transaction | **Implemented (audit pending)** | `test_phase5b_api.py` — early/failed/perfect/duplicate/concurrent/rollback |
-| Hearts status/refill | **Service only** | `test_gamification_unit.py::TestHeartRefill`; HTTP route Phase 6 |
-| User profile/settings | Not verified | — |
-| Leaderboard | Not verified | — |
-| Achievements | **Service + completion response** | Unit + `test_achievement_threshold_crossed_by_completion` |
-| Content management | Not verified | — |
-| Debug clock safety | Not verified | — |
-| Standard error envelope/status codes | **Extended** | LESSON_NOT_READY, ATTEMPT_ALREADY_COMPLETED, ATTEMPT_FAILED, OUT_OF_HEARTS, CLOCK_BEFORE_ACTIVITY, HEARTS_ALREADY_FULL, INSUFFICIENT_GEMS, REFILL_NOT_CONFIRMED |
+| Completion transaction | **Implemented** | `test_phase5b_api.py`; Phase 6 regression smoke |
+| Hearts status/refill | **Verified** | `test_phase6_api.py::TestHeartsAPI` |
+| User profile/settings | **Verified** | `test_phase6_api.py::TestProfileAPI` |
+| Leaderboard | **Verified** | `test_phase6_api.py::TestLeaderboardAPI` |
+| Achievements | **Verified** | `test_phase6_api.py::TestAchievementsAPI` |
+| Content management | **Verified** | `test_phase6_api.py::TestContentAdminAPI` |
+| Debug clock safety | **Verified** | Absent when disabled; read/advance/reset when enabled |
+| Standard error envelope/status codes | **Extended** | CONTENT_ADMIN_REQUIRED, HEARTS_ALREADY_FULL, INSUFFICIENT_GEMS, REFILL_NOT_CONFIRMED, INVALID_EXERCISE_CONTRACT, CONTENT_IN_ACTIVE_ATTEMPT |
 
-### Phase 5B atomicity / concurrency evidence
+### Phase 6 endpoint evidence
 
 | Case | Result |
 |---|---|
-| Early complete | 409 LESSON_NOT_READY; no XP/streak/crown change |
-| Failed complete | 409 ATTEMPT_FAILED; no effects |
-| Non-perfect complete | 10 XP; crown +1; streak rules applied |
-| Perfect complete | 15 XP (base 10 + floor bonus 5) |
-| Duplicate complete | 409 ATTEMPT_ALREADY_COMPLETED; no second effects |
-| Concurrent complete | One `ok` + one `ATTEMPT_ALREADY_COMPLETED`; XP awarded once |
-| Injected late-step failure | Full rollback; retry succeeds once |
-| Same/next/skipped logical dates | extended_today false / increment / reset to 1 |
-| Crown cap + unlock | Replay at max caps crowns; Family→Questions unlock returned |
-| Achievement threshold | Current completion can unlock (e.g. streak_7) |
-| XP cache invariant | `users.total_xp == SUM(completed xp_earned)` after every scenario |
-| Completion OpenAPI | `CompletionResponse` registered; path `/api/lessons/{attempt_id}/complete` |
+| Heart status full/partial/regen | Exact next_heart_at, seconds_until_next, interval 15 |
+| Refill success | Spends 20 gems; fills hearts; clears anchor |
+| Refill failures | Full / unconfirmed / insufficient spend nothing |
+| Maya profile | 340 XP, today 10, goal 0.5, streak 6/11, 2 skills, 29 lessons, 10 perfect |
+| PATCH display_name + daily_goal | Persists; progress recomputed; XP unchanged |
+| Invalid/empty/unknown patch | 422 |
+| Leaderboard order | Leo #1 … Maya #3; ranking_basis=total_xp |
+| Leaderboard limit=2 | current_user still Maya rank 3 |
+| Leaderboard after complete | Maya XP increases |
+| Achievements | streak_7 earned with current_value 6; xp_500 locked at 340 |
+| Non-admin content | 403 CONTENT_ADMIN_REQUIRED |
+| Admin tree | Ordered course/unit/skill/lesson/exercises with correct_answer |
+| Create all five types | 201 each |
+| Invalid contract | 400; no persistence |
+| Merged patch | Invalid type-only rejected; valid prompt patch OK |
+| Active-attempt edit | 409 CONTENT_IN_ACTIVE_ATTEMPT |
+| Debug disabled | /api/debug/clock → 404; absent from OpenAPI |
+| Debug enabled | read/advance/reset + clock-driven hearts/streak/daily XP |
+| OpenAPI models | Hearts/Profile/Leaderboard/Achievements/Admin/Completion registered |
 
 ---
 
@@ -280,7 +293,9 @@ decisions or approved deviations discovered while implementing.
 | 2026-07-18 | Phase 5B: Standard XP helper only; timed fixed-20 deferred | Phase 6B extends without duplicating streak/achievement rules | `xp.py`, `lesson_engine.complete_attempt` |
 | 2026-07-18 | Phase 5B: Heart refill is service-only | HTTP GET/POST hearts endpoints remain Phase 6 | `hearts.refill_hearts` |
 | 2026-07-18 | Phase 5B: Test-only `_completion_failure_hook` for rollback proof | Required integration scenario without weakening production path | `lesson_engine.set_completion_failure_hook` |
-| 2026-07-18 | Phase 5B marked IMPLEMENTED_UNVERIFIED | Cursor Auto implemented; Sonnet audit required before VERIFIED | handoff |
+| 2026-07-18 | Phase 6: Debug routes gated by `DEBUG_CLOCK_ENABLED` (env) | Matches existing config; routes unregistered (404) when false | `config.py`, `main.py`, `routers/debug.py` |
+| 2026-07-18 | Phase 6: TTS fields not persisted; admin uses existing columns only | Forward migration for tts_text/tts_lang deferred to Phase 6B | `content_admin.py`, handoff staging |
+| 2026-07-18 | Phase 6: `require_content_admin` centralized dependency | Non-admins get 403 CONTENT_ADMIN_REQUIRED | `dependencies/auth.py` |
 
 If a decision changes an API, schema, gamification rule, acceptance criterion, or deployment
 contract, update the source specification in the same phase. This handoff is not a replacement
@@ -295,28 +310,39 @@ for correcting the source document.
 | Info | `/docs/09_DEPLOYMENT.md` not yet created | No impact until deployment phase | Create when Phase 15 starts | Open |
 | Info | Product name is LingoPath but repository is named LingoQuest | Cosmetic inconsistency | Intentional - LingoPath is the user-facing product name per requirements | Acknowledged |
 | Info | Timed practice + `failure_reason` / `mode` / `expires_at` columns staged | Standard completion only; Phase 6B adds timed start/answer/complete | Phase 6B forward migration | Open (by design) |
-| Info | Phase 5B Sonnet audit pending | Status remains IMPLEMENTED_UNVERIFIED | Run Sonnet audit against exit checks | Open |
+| Info | `exercises.tts_text` / `tts_lang` not yet in schema | Admin create/edit cannot persist TTS until 6B; seed TTS later | Phase 6B: add columns, seed ≥3 TTS exercises/skill, extend admin validation | Open (by design) |
+| Info | Phase 5B formal Sonnet audit not separately recorded | Completion path covered by Phase 5B + Phase 6 regression tests | Optional dedicated 5B audit before Phase 7 | Open |
 
 ---
 
 ## Files changed in the latest phase
 
-Phase 5B implemented atomic standard-mode completion and gamification services:
+Phase 6 implemented remaining standard backend endpoints:
 
 | File | Change | Reason |
 |---|---|---|
-| `backend/app/services/xp.py` | Created | Standard XP, today XP, daily-goal progress, XP sum invariant helper |
-| `backend/app/services/streak.py` | Created | Logical-date streak transitions + CLOCK_BEFORE_ACTIVITY |
-| `backend/app/services/skill_progress.py` | Created | Crown/practice updates + newly unlocked skill IDs |
-| `backend/app/services/achievements.py` | Created | Criteria evaluation + idempotent awards |
-| `backend/app/services/hearts.py` | Updated | `refill_hearts` with confirm/regen/full/gems rules |
-| `backend/app/services/lesson_engine.py` | Updated | `complete_attempt` orchestration + failure hook |
-| `backend/app/services/course_path.py` | Updated | Delegate today XP to `xp.py` |
-| `backend/app/schemas/lesson.py` | Updated | `CompletionResponse` and nested models |
-| `backend/app/routers/lessons.py` | Updated | Thin POST `/lessons/{attempt_id}/complete` |
-| `backend/tests/test_gamification_unit.py` | Created | Phase 5B unit matrix |
-| `backend/tests/test_phase5b_api.py` | Created | Phase 5B integration scenarios |
-| `docs/07_HANDOFF_CURRENT_STATE.md` | Updated | Phase 5B IMPLEMENTED_UNVERIFIED evidence |
+| `backend/app/schemas/hearts.py` | Created | Hearts status/refill contracts |
+| `backend/app/schemas/user.py` | Created | Profile + PATCH contracts |
+| `backend/app/schemas/leaderboard.py` | Created | Leaderboard contracts |
+| `backend/app/schemas/achievements.py` | Created | Achievements list contracts |
+| `backend/app/schemas/admin.py` | Created | Content tree + exercise admin contracts |
+| `backend/app/schemas/debug.py` | Created | Debug clock contracts |
+| `backend/app/services/profile.py` | Created | Profile aggregates + settings patch |
+| `backend/app/services/leaderboard.py` | Created | Deterministic total-XP ranking |
+| `backend/app/services/content_admin.py` | Created | Tree, create, merged-patch edit, active-attempt guard |
+| `backend/app/services/achievements.py` | Updated | `list_achievements_for_user` read path |
+| `backend/app/services/hearts.py` | Updated | `HeartsStatus` + ceil seconds_until_next |
+| `backend/app/core/clock.py` | Updated | DebugClock day offset + advance/reset |
+| `backend/app/dependencies/auth.py` | Updated | `require_content_admin` |
+| `backend/app/routers/hearts.py` | Created | GET status, POST refill |
+| `backend/app/routers/user.py` | Created | GET/PATCH user/me |
+| `backend/app/routers/leaderboard.py` | Created | GET leaderboard |
+| `backend/app/routers/achievements.py` | Created | GET achievements |
+| `backend/app/routers/admin.py` | Created | Content tree + exercise create/edit |
+| `backend/app/routers/debug.py` | Created | Debug clock routes |
+| `backend/app/main.py` | Updated | Register Phase 6 routers; conditional debug |
+| `backend/tests/test_phase6_api.py` | Created | Phase 6 integration matrix (21 tests) |
+| `docs/07_HANDOFF_CURRENT_STATE.md` | Updated | Phase 6 VERIFIED evidence |
 
 ---
 
@@ -325,32 +351,31 @@ Phase 5B implemented atomic standard-mode completion and gamification services:
 | Check | Result |
 |---|---|
 | Current branch | `main` |
-| Pre-existing unrelated edits | Preserved; Phase 5B touched listed backend/docs files only |
-| Files that overlap planned phase work | None beyond Phase 5B scope |
+| Pre-existing unrelated edits | Preserved; Phase 5B uncommitted files remain alongside Phase 6 additions |
+| Files that overlap planned phase work | Phase 5B + Phase 6 backend/docs only |
 
 ---
 
 ## Exact next request for Cursor
 
-Phase 5B is implemented but not yet Sonnet-audited. Use this request next:
+Phase 6 is VERIFIED. Use this request next:
 
 ```text
-Perform LingoQuest Phase 5B Sonnet audit from /docs/06_IMPLEMENTATION_PHASES.md using Claude Sonnet.
+Perform LingoQuest Phase 6B from /docs/06_IMPLEMENTATION_PHASES.md using Claude Sonnet
+(or Cursor Auto if preferred for routine migration work).
 
 Read these first:
 1. .cursor/rules/project-rules.mdc
 2. /CLAUDE.md
 3. /docs/07_HANDOFF_CURRENT_STATE.md
-4. The Phase 5B section of /docs/06_IMPLEMENTATION_PHASES.md
-5. Completion contracts in /docs/03_API_SPEC.md and /docs/04_GAMIFICATION_LOGIC.md
+4. The Phase 6B section of /docs/06_IMPLEMENTATION_PHASES.md
+5. Timed-practice rules in /docs/04_GAMIFICATION_LOGIC.md and /docs/03_API_SPEC.md
+6. Schema notes for lesson_attempts mode/expires_at/failure_reason and exercises tts_text/tts_lang
 
-Audit the Auto implementation against every Phase 5B exit check and the gamification unit/
-integration matrix. Re-run focused and full backend tests. Fix any gaps. If clean, mark Phase 5B
-VERIFIED in the handoff and set the next action to Phase 6. Stop after the audit.
+Implement the forward Alembic migration and timed-practice backend. Also add TTS columns,
+seed at least three TTS exercises per skill, and extend admin create/edit validation for TTS.
+Preserve standard-mode behavior. Stop after Phase 6B.
 ```
-
-After Phase 5B is VERIFIED, Phase 6 is next (remaining backend endpoints). Phase 6B remains
-staged for timed-practice columns and behavior.
 
 ---
 

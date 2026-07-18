@@ -1,6 +1,7 @@
 """Hearts service for regeneration and refill logic."""
 from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
+from math import ceil
 from typing import Optional
 
 from app.core.errors import ConflictError, DomainError
@@ -10,6 +11,17 @@ from app.models.user import User
 # Constants
 HEART_REGEN_MINUTES = 15
 HEART_REFILL_GEM_COST = 20
+
+
+@dataclass(frozen=True)
+class HeartsStatus:
+    """Current hearts after lazy regeneration."""
+
+    hearts: int
+    max_hearts: int
+    next_heart_at: Optional[datetime]
+    seconds_until_next: Optional[int]
+    regen_interval_minutes: int = HEART_REGEN_MINUTES
 
 
 @dataclass(frozen=True)
@@ -113,17 +125,28 @@ def calculate_next_heart_at(user: User) -> Optional[datetime]:
 def calculate_seconds_until_next(user: User, now: datetime) -> Optional[int]:
     """
     Calculate seconds until next heart regeneration.
-    
-    Returns None if hearts are full.
+
+    Returns None if hearts are full. Uses ceil per gamification spec.
     """
     next_heart_at = calculate_next_heart_at(user)
-    
+
     if next_heart_at is None:
         return None
-    
+
     now = ensure_utc_aware(now)
-    seconds = max(0, int((next_heart_at - now).total_seconds()))
-    return seconds
+    return max(0, ceil((next_heart_at - now).total_seconds()))
+
+
+def build_hearts_status(user: User, now: datetime) -> HeartsStatus:
+    """Build hearts status after regeneration has already been applied."""
+    next_heart_at = calculate_next_heart_at(user)
+    return HeartsStatus(
+        hearts=user.hearts,
+        max_hearts=user.max_hearts,
+        next_heart_at=next_heart_at,
+        seconds_until_next=calculate_seconds_until_next(user, now),
+        regen_interval_minutes=HEART_REGEN_MINUTES,
+    )
 
 
 def lose_heart(user: User, now: datetime) -> None:
