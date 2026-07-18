@@ -175,6 +175,9 @@ export function MatchPairsExerciseView({
       exerciseType={exercise.type}
       instruction="Match each item on the left with its partner on the right."
       prompt={exercise.prompt}
+      audioUrl={exercise.audio_url}
+      ttsText={exercise.tts_text}
+      ttsLang={exercise.tts_lang}
       statusText={statusText}
     >
       <div className="space-y-4">

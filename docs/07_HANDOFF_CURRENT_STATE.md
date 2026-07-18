@@ -38,13 +38,13 @@ when its exit checks in `/docs/06_IMPLEMENTATION_PHASES.md` pass.
 |---|---|
 | Product | LingoQuest |
 | Repository state | `INSPECTED` |
-| Current phase | Phase 10C — Lesson feedback, failure, and results visual pass |
+| Current phase | Phase 10D — Exercise audio and TTS frontend |
 | Current phase status | `VERIFIED` |
-| Next action | Phase 10D — Exercise audio and TTS frontend |
+| Next action | Phase 10E — Timed-practice frontend flow |
 | Recommended model | Claude Sonnet |
 | Required skill | None |
 | Last updated | 2026-07-19 |
-| Updated by | Phase 10C feedback/failure/results visual pass |
+| Updated by | Phase 10D accessible exercise audio / browser TTS |
 | Active blocker | None |
 
 ---
@@ -112,12 +112,13 @@ verified.
 | Lesson player shell and state machine | `VERIFIED` | Phase 10A: pure reducer, `useLessonSession` controller, focused layout, header/progress/hearts/exit, answer/feedback/continue/complete orchestration, failed/completed/error surfaces, timed-mode retrieve boundary. |
 | Five exercise renderers | `VERIFIED` | Phase 10B: production `exerciseRenderer` dispatches MC/word-bank/match/fill/type; exact payloads; draft reset; locked during submit/feedback; attempt 143 read-only preserved. |
 | Feedback/failure/completion UI polish | `VERIFIED` | Phase 10C: dimensional feedback, solution formatting, out-of-hearts modal + refill/retry, results celebration, toasts, reduced motion. |
+| Exercise audio / browser TTS | `VERIFIED` | Phase 10D: Play/Replay via Speech Synthesis; audio_url preferred when present; lifecycle cancel; all five types via ExerciseFrame. |
 | Profile/leaderboard/settings UI | `PARTIAL` | Shell + nav live; page bodies still deferred placeholders (not path/skill). |
-| Content manager UI | `NOT_STARTED` | Placeholder `/admin/content` only. Admin nav omitted until profile exposes `is_content_admin`. |
-| Responsive accessibility | `PARTIAL` | Lesson feedback/modals inspected at 320/390/1440 + 200% zoom; full audit in Phase 13. |
-| Dark mode bonus | `PARTIAL` | Theme toggle on settings; lesson feedback/results dark captures inspected in Phase 10C. |
-| Automated test suite | `VERIFIED` | Backend **198 passed** (prior). Frontend Vitest **164 passed** (Phase 10C). |
-| Production builds | `VERIFIED` | Frontend `next build` passed (Phase 10C); backend LingoQuest API on `:8000`. |
+| Content manager UI | `NOT_STARTED` | Placeholder `/admin/content` only. Admin API already exposes TTS fields (Phase 7C); form UI remains Phase 11B. |
+| Responsive accessibility | `PARTIAL` | Lesson audio + feedback inspected at 320/390/1440 + 200% zoom; full audit in Phase 13. |
+| Dark mode bonus | `PARTIAL` | Theme toggle on settings; lesson audio dark captures taken in Phase 10D (lesson theme wiring polish may remain for Phase 14). |
+| Automated test suite | `VERIFIED` | Backend **198 passed** (prior). Frontend Vitest **188 passed** (Phase 10D). |
+| Production builds | `VERIFIED` | Frontend `next build` passed (Phase 10D); backend LingoQuest API on `:8000`. |
 | Deployment and persistent SQLite | `NOT_STARTED` | Deferred; deployment spec missing. |
 | README and submission evidence | `NOT_STARTED` | No `README.md` exists. |
 
@@ -127,157 +128,154 @@ verified.
 
 ### Phase
 
-Phase 10C — Lesson feedback, failure, and results visual pass
+Phase 10D — Exercise audio and TTS frontend
 
 ### Objective
 
-Polish the complete standard lesson experience: Check → Feedback → Continue cadence,
-backend-authoritative hearts, out-of-hearts refill/retry, completion results, celebration,
-and toast hierarchy — without changing the Phase 10A state machine or Phase 10B payloads.
+Accessible Play/Replay exercise audio using browser Speech Synthesis (`tts_text` + `tts_lang`)
+with optional `audio_url` precedence, shared across all five exercise types, without mutating
+learner progress or interfering with Check/Continue.
 
 ### Model and skill used
 
-**Model:** Claude Opus (normal mode)
-**Skill:** `frontend-design` (loaded and followed for feedback composition, modal hierarchy,
-3D polish, motion, and screenshot-led QA)
+**Model:** Claude Sonnet (normal mode)
+**Skill:** None (reused Phase 8C `IconButton3D` + Phase 10C lesson composition)
 
-### Feedback / failure / results work
+### Audio architecture
 
-| Surface | Behavior |
+| Piece | Role |
 |---|---|
-| Correct feedback | Original LingoQuest phrases, success icon, hearts from answer response, Continue |
-| Incorrect feedback | Original phrases, formatted solution (all five types), hearts from response, Continue |
-| Heart loss | Header hearts apply `hearts_remaining` exactly; restrained CSS pulse (hidden under reduced motion) |
-| Out of hearts | Non-dismissible `Modal` + concerned Quest fox; no complete; Practice Coming Soon |
-| Refill | `POST /api/hearts/refill` once; apply returned hearts/gems; then Retry |
-| Retry | `POST /api/skills/{skill_id}/start` → navigate to **new** attempt id only |
-| Completion | `POST .../complete` once; pending “Wrapping up…”; rewards only after `CompletionResponse` |
-| Results | XP medallion, perfect badge (when confirmed), crowns/streak/totals/achievements from response |
-| Toasts | Streak/achievements/refill/errors; results modal remains primary; max 2 visible |
-| Timed boundary | `time_expired` is not treated as out-of-hearts; no timed countdown UI (Phase 10E) |
-| TTS boundary | No playback controls added (Phase 10D) |
+| `lib/audio/resolve-audio-source.ts` | Prefer valid `audio_url`; else complete TTS pair; else hidden |
+| `lib/audio/speech-config.ts` | Rate 0.95 / pitch 1 / volume 1; BCP 47 + Duolingo URL rejection |
+| `lib/audio/voice-selection.ts` | Exact lang → base lang → browser default (`utterance.lang` retained) |
+| `lib/audio/support.ts` | SSR-safe support detection (no module-init `window` access) |
+| `lib/audio/lesson-audio-controller.ts` | Lesson-scoped cancel registry |
+| `hooks/use-speech-synthesis.ts` | Utterance lifecycle + stale-callback guard |
+| `hooks/use-html-audio.ts` | `HTMLAudioElement` Play/Replay for `audio_url` |
+| `hooks/use-exercise-audio.ts` | Unified source + UI status |
+| `components/lesson/exercise-audio-control.tsx` | Accessible Play/Replay / unsupported fallback |
+| `ExerciseFrame` audio slot | Shared wiring for all five renderers |
 
-### API endpoints wired
+### Voice-selection policy
 
-| Endpoint | Use |
-|---|---|
-| `POST /api/lessons/{id}/answer` | Existing controller; feedback renders response fields |
-| `POST /api/lessons/{id}/complete` | Existing controller; results from response |
-| `POST /api/hearts/refill` | Failed modal primary action |
-| `POST /api/skills/{skill_id}/start` | Retry after successful refill (`skill_id` from attempt) |
+1. Exact language match (e.g. `es-ES`)
+2. Same base language (any `es-*`)
+3. Browser default voice while retaining `utterance.lang`
+
+Voices load asynchronously via `voiceschanged` (listener cleaned up). No voice picker.
+Playback is never blocked waiting for voices.
+
+### Play / Replay behavior
+
+- No autoplay
+- Control shown only for valid `audio_url` or complete `tts_text` + `tts_lang`
+- Never invent TTS text from the prompt
+- Accessible names: Play/Replay Spanish pronunciation
+- Speaking state uses text + optional waves (static under reduced motion)
+- Error: restrained live message; answering remains enabled
+- Unsupported: non-button fallback (no dead button)
+
+### Lifecycle cleanup
+
+Cancel on Check, Continue, attempt-id change, completing/completed/failed, confirmed exit,
+exercise identity change, and unmount.
+
+**Check decision:** cancel speech on Check so feedback announcements are not overlapping.
+
+**Browser limitation:** `speechSynthesis.cancel()` is page-global.
+
+### audio_url decision
+
+Prefer playable original/licensed `audio_url` over TTS; reject Duolingo hosts. Seed currently
+has `audio_url = null` for all exercises (0 non-null). No third-party TTS or API keys.
+
+### Content-admin boundary
+
+Admin API retains `tts_text`/`tts_lang`/`audio_url` (Phase 7C verified). Content-admin form UI
+remains Phase 11B.
 
 ### Key files
 
 | Path | Purpose |
 |---|---|
-| `components/lesson/lesson-feedback-region.tsx` | Feedback sheet + Continue/Finish + mutation errors |
-| `components/lesson/lesson-failed-surface.tsx` | Out-of-hearts modal + refill/retry; timed expiry separate |
-| `components/lesson/lesson-completed-surface.tsx` | Results celebration + return/path/profile |
-| `components/lesson/celebration-burst.tsx` | Decorative sparkles (aria-hidden; reduced-motion static) |
-| `components/lesson/lesson-hearts.tsx` | Heart-loss pulse from response delta |
-| `components/lesson/lesson-player.tsx` | Check↔Continue cadence; completing polish; toast errors |
-| `components/lesson/lesson-layout.tsx` | Hide action bar during feedback; safe-area padding |
-| `components/ui/feedback-surface.tsx` | Dimensional slide-up; reduced-motion opacity |
-| `lib/lesson/format-solution.ts` | Safe five-type solution formatting |
-| `lib/lesson/feedback-copy.ts` | Original correct/incorrect phrases |
-| `stores/session-store.ts` | `applyRefill` from backend response |
-| `scripts/phase10c-feedback-screenshots.mjs` | Screenshot QA (mocked mutations) |
+| `frontend/lib/audio/**` | Source resolution, voices, support, cancel registry |
+| `frontend/hooks/use-speech-synthesis.ts` | Speech Synthesis controller |
+| `frontend/hooks/use-html-audio.ts` | audio_url controller |
+| `frontend/hooks/use-exercise-audio.ts` | Unified exercise audio hook |
+| `frontend/components/lesson/exercise-audio-control.tsx` | Play/Replay UI |
+| `frontend/components/lesson/exercise-frame.tsx` | Shared TTS slot for five types |
+| `frontend/components/lesson/lesson-player.tsx` | Cancel on Check/Continue/exit/terminal |
+| `frontend/tests/helpers/mock-speech-synthesis.ts` | Focused speech mocks |
+| `frontend/tests/components/phase10d-exercise-audio.test.tsx` | Playback/cleanup/integration |
+| `frontend/scripts/phase10d-audio-screenshots.mjs` | Browser + screenshot QA |
 
-### Test counts (164 total frontend)
+### Test counts (188 total frontend)
 
 | Suite | Tests | Coverage |
 |---|---|---|
-| `tests/components/phase10c-feedback-failure-results.test.tsx` | 14 | Feedback, hearts, OOH modal, refill/retry, completion, toasts |
-| `tests/lesson/format-solution.test.ts` | 3 | All five types + malformed + no raw JSON |
-| `tests/stores/session-store.test.ts` | 5 | Includes refill apply |
-| Phase 10B + prior suites | 142 | Regression green |
-
-### Isolated journeys (mocked HTTP)
-
-1. Perfect five-type journey → complete once → exact XP/perfect/results — **pass**
-2. Incorrect answer → solution + hearts from response — **pass**
-3. Zero hearts → terminal modal → no complete → refill once → new attempt id — **pass**
-4. Completion failure → no rewards, recoverable alert — **pass**
-5. Timed expiry ≠ out-of-hearts — **pass**
-
-No mutations against real attempt 143.
-
-### Real-backend read-only verification (attempt 143)
-
-| Check | Result |
-|---|---|
-| `GET /api/lessons/143` | **200** |
-| `status` | `in_progress` |
-| `current_index` | `0` |
-| `hearts` | `5` |
-| `correct_answer` in retrieve | **absent** |
-| Exit modal open + cancel | **pass** (screenshot) |
-| Check activated against 143 | **no** |
-| Unchanged after screenshot pass | **yes** (`summary.json`) |
+| `tests/components/phase10d-exercise-audio.test.tsx` | 19 | Support, playback, replay, voices, five types, Check cancel |
+| `tests/audio/resolve-audio-source.test.ts` | 5 | audio_url preference, invalid TTS, voice priority |
+| Phase 10C + prior suites | 164 | Regression green |
 
 ### Quality gates
 
-| Gate | Result |
+| Command | Result |
 |---|---|
-| `npm run test` | **164 passed** |
-| `npm run typecheck` | **pass** |
-| `npm run lint` | **pass** (0 warnings) |
-| `npm run build` | **pass** |
-| `any` / `@ts-ignore` in lesson feedback code | **0** |
-| `LingoPath` | **0** |
-| Local XP/hearts/streak/crown calculations | **0** |
-| Optimistic refill values | **0** |
-| Failed-attempt resume | **0** (retry starts new attempt) |
-| Premature TTS / timed expiry UI | **0** |
-| Duplicate completion / auto mutation retry | **0** |
+| `npm run test` | **188 passed** |
+| `npm run typecheck` | pass |
+| `npm run lint` | pass (0 warnings/errors) |
+| `npm run build` | pass |
 
-### Visual viewports inspected
+### TTS seed / API verification
 
-Artifacts: `qa-screenshots/phase10c/` (19 PNGs via `scripts/phase10c-feedback-screenshots.mjs`)
-
-| State | Viewports / themes |
+| Check | Result |
 |---|---|
-| Ready + exit cancel | 390 light |
-| Correct feedback | 1440/390/320 light; 1440/390 dark |
-| Incorrect long solution | 390 light |
-| Out of hearts | 1440/390/320 light; 1440/390 dark; 200% zoom |
-| Results (retrieved) | 390 light/dark + reduced-motion |
-| Perfect + achievements | 1440 + 390 light |
+| Public TTS/audio fields nullable | Confirmed via OpenAPI `PublicExercise` |
+| Public omits `correct_answer` | Confirmed on attempt 143 |
+| Admin retains TTS fields | Confirmed via OpenAPI + content tree |
+| TTS ≥3 per skill | Greetings 4; others 3 each |
+| All five types TTS-capable | Yes (16 total) |
+| Seed `audio_url` non-null | 0 |
 
-Observed after Continue-visibility fix: feedback Continue reachable; no horizontal overflow;
-modal usable at 320px; reduced-motion static celebration; toast/modal hierarchy readable.
+### Real-browser verification
+
+`node scripts/phase10d-audio-screenshots.mjs`: Play, Replay, `es-ES`, no autoplay, keyboard,
+unsupported fallback, no overflow — all pass. Audible device output not claimed (headless probe).
+
+### Attempt 143 read-only
+
+TTS controls rendered; Play allowed; no Check/answer/complete/fail. After QA:
+`status=in_progress`, `current_index=0`, no `correct_answer`.
+
+### Screenshot viewports / states
+
+`qa-screenshots/phase10d/`: 1440/390/320 light+dark Play/Speaking/unsupported; five-type TTS;
+200% zoom; reduced-motion path.
 
 ### Accessibility verification
 
-- Feedback `aria-live="assertive"`; icon + text (not color alone)
-- Continue focused after feedback; Enter advances when safe
-- Modal focus trap; non-dismissible OOH; background blocked
-- Confetti/sparks `aria-hidden`; reduced-motion alternatives
-- Native buttons/radios/inputs; logical tab order; visible focus on prompt after Continue
-- Accessible instructions + tile add/remove/pair labels (duplicate words distinguished)
-- Touch targets ≥44px (`min-h-11` / ChoiceTile 48px)
-- Selection not color-only (borders, pair numbers, aria-checked/pressed)
-- Live-region sequence announcements (restrained `sr-only`)
-- IME-safe Enter on fill/type; no focus steal on ordinary selection
-- Match pairs operable without pointer-drawn lines
-
-### Contract gaps
-
-None blocking. `skill_id` is present on `LessonAttemptResponse` and used for retry start.
+Real button + keyboard; ≥44px; visible focus; speaking not color-only; reduced-motion static
+indicator; error live region; unsupported non-blocking; audio never required; no autoplay.
 
 ### Remaining risks
 
-- Lesson-route dark theme may need fuller `ui-store` wiring polish in Phase 14
-- Timed live countdown / expiry UI deferred to Phase 10E (retrieve notice only)
-- TTS playback deferred to Phase 10D
-- Full cross-app a11y audit deferred to Phase 13
-- Profile page still a placeholder; “View profile” from results navigates there honestly
+- Lesson-route dark theme polish may remain for Phase 14
+- Timed countdown UI deferred to Phase 10E
+- Content-admin TTS forms deferred to Phase 11B
+- Full a11y audit deferred to Phase 13
 
 ### Exact next phase
 
-**Phase 10D — Exercise audio and TTS frontend** (`/docs/06_IMPLEMENTATION_PHASES.md`)
+**Phase 10E — Timed-practice frontend flow** (`/docs/06_IMPLEMENTATION_PHASES.md`)
 **Model:** Claude Sonnet
 **Skill:** None
+
+---
+
+## Phase 10C contract (historical — VERIFIED)
+
+Phase 10C polished Check → Feedback → Continue, out-of-hearts refill/retry, completion results,
+celebration, and toast hierarchy. TTS playback was deferred to Phase 10D (now VERIFIED).
 
 ---
 
@@ -790,7 +788,7 @@ Phase 10C lesson feedback / failure / results visual pass:
 |---|---|
 | Current branch | `main` |
 | Pre-existing unrelated edits | Preserved |
-| Files changed this phase | Lesson feedback/failure/results + tests + screenshots + handoff |
+| Files changed this phase | Exercise audio/TTS hooks + control + tests + screenshots + handoff |
 | Backend production code | **Unchanged** |
 | Attempt 143 | Read-only; unchanged (`in_progress`, index `0`) |
 
@@ -798,18 +796,17 @@ Phase 10C lesson feedback / failure / results visual pass:
 
 ## Exact next request for Cursor
 
-Phase 10C is VERIFIED. Use this request next:
+Phase 10D is VERIFIED. Use this request next:
 
 ```text
-Perform LingoQuest Phase 10D: exercise audio playback and TTS.
+Perform LingoQuest Phase 10E: timed-practice frontend flow.
 
-Follow the Common phase protocol. Implement accessible Play/Replay button that uses browser
-speechSynthesis API when tts_text/tts_lang are present, or plays audio_url when available. Prefer
-audio_url over TTS. Never autoplay.
+Follow the Common phase protocol. Add timed-practice start option on unlocked skill screen. Display
+countdown timer using backend remaining_seconds. Handle time-expired failure modal. Show timed
+completion results with fixed 20 XP. Support refresh/resume with timer recovery. Implement
+reduced-motion alternative for timer. Label as "Timed Practice."
 
-Show honest disabled/unavailable state when speechSynthesis is unsupported. Add component tests
-mocking speechSynthesis and verifying text/language selection. Update content-admin forms to expose
-optional tts_text and tts_lang fields. Do not use or copy Duolingo audio.
+Preserve standard-mode lesson shell. Do not consume normal hearts display in timed mode.
 ```
 
 **Recommended model:** Claude Sonnet  

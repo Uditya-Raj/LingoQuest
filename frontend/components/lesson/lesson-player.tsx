@@ -19,6 +19,7 @@ import { Button3D } from '@/components/ui/button-3d'
 import { QuestMascot } from '@/components/ui/quest-mascot'
 import { useToast } from '@/components/ui/toast'
 import { useLessonSession } from '@/hooks/use-lesson-session'
+import { cancelActiveLessonAudio } from '@/lib/audio/lesson-audio-controller'
 import type { SubmittedAnswer } from '@/lib/contracts/exercises'
 
 interface LessonPlayerProps {
@@ -87,13 +88,38 @@ export function LessonPlayer({
 
   const handleSubmit = useCallback(() => {
     if (submitPayload === null) return
+    // Cancel speech on Check so feedback announcements are not overlapping.
+    cancelActiveLessonAudio()
     session.submitCurrentAnswer(submitPayload)
   }, [session, submitPayload])
 
+  const handleContinue = useCallback(() => {
+    cancelActiveLessonAudio()
+    session.continueLesson()
+  }, [session])
+
   const handleConfirmExit = useCallback(() => {
+    cancelActiveLessonAudio()
     setConfirmExitOpen(false)
     router.push('/')
   }, [router])
+
+  // Cancel on attempt change, terminal surfaces, and unmount.
+  useEffect(() => {
+    return () => {
+      cancelActiveLessonAudio()
+    }
+  }, [attemptId])
+
+  useEffect(() => {
+    if (
+      state.status === 'completed' ||
+      state.status === 'failed' ||
+      state.status === 'completing'
+    ) {
+      cancelActiveLessonAudio()
+    }
+  }, [state.status])
 
   if (state.status === 'loading') {
     return <LessonLoadingSurface />
@@ -224,7 +250,7 @@ export function LessonPlayer({
             canContinue={session.canContinue || session.isCompleting}
             isCompleting={session.isCompleting}
             mutationError={session.mutationError?.message ?? null}
-            onContinue={session.continueLesson}
+            onContinue={handleContinue}
           />
         ) : null
       }

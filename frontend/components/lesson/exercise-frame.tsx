@@ -2,8 +2,10 @@
 
 import { useEffect, useRef, type ReactNode } from 'react'
 
+import { ExerciseAudioControl } from '@/components/lesson/exercise-audio-control'
 import { SurfaceCard } from '@/components/ui/surface-card'
 import { StatusBadge } from '@/components/ui/status-badge'
+import { hasExerciseAudioSource } from '@/lib/audio/resolve-audio-source'
 import { exerciseTypeLabel } from '@/lib/lesson/format-solution'
 import type { ExerciseType } from '@/lib/contracts/exercises'
 import { cn } from '@/lib/utils'
@@ -13,7 +15,10 @@ export interface ExerciseFrameProps {
   exerciseType: ExerciseType
   instruction: string
   prompt: string
-  /** Reserved composition slot for Phase 10D AudioControl — never a dead button. */
+  audioUrl?: string | null
+  ttsText?: string | null
+  ttsLang?: string | null
+  /** Optional override for the TTS slot; defaults to ExerciseAudioControl. */
   audioSlot?: ReactNode
   statusText?: string
   children: ReactNode
@@ -22,13 +27,16 @@ export interface ExerciseFrameProps {
 
 /**
  * Shared presentation frame for lesson exercises.
- * Prompt is the visual focus; TTS fields stay available for a later audio control.
+ * Prompt is the visual focus; TTS/audio renders in the approved audio slot.
  */
 export function ExerciseFrame({
   exerciseId,
   exerciseType,
   instruction,
   prompt,
+  audioUrl = null,
+  ttsText = null,
+  ttsLang = null,
   audioSlot,
   statusText,
   children,
@@ -42,6 +50,22 @@ export function ExerciseFrame({
     previousIdRef.current = exerciseId
     promptRef.current?.focus({ preventScroll: true })
   }, [exerciseId])
+
+  const showDefaultAudio =
+    audioSlot === undefined &&
+    hasExerciseAudioSource({ audioUrl, ttsText, ttsLang })
+
+  const resolvedAudioSlot =
+    audioSlot !== undefined ? (
+      audioSlot
+    ) : showDefaultAudio ? (
+      <ExerciseAudioControl
+        exerciseId={exerciseId}
+        audioUrl={audioUrl}
+        ttsText={ttsText}
+        ttsLang={ttsLang}
+      />
+    ) : null
 
   return (
     <SurfaceCard
@@ -59,20 +83,25 @@ export function ExerciseFrame({
         {instruction}
       </p>
 
-      {audioSlot ? (
-        <div className="flex items-start gap-2" data-tts-slot>
-          {audioSlot}
-        </div>
-      ) : null}
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:gap-4">
+        {resolvedAudioSlot ? (
+          <div
+            className="shrink-0"
+            data-tts-slot
+          >
+            {resolvedAudioSlot}
+          </div>
+        ) : null}
 
-      <h2
-        ref={promptRef}
-        id={`exercise-prompt-${exerciseId}`}
-        tabIndex={-1}
-        className="text-lq-xl font-extrabold leading-snug text-lq-text-primary break-words outline-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-lq-border-focus"
-      >
-        {prompt}
-      </h2>
+        <h2
+          ref={promptRef}
+          id={`exercise-prompt-${exerciseId}`}
+          tabIndex={-1}
+          className="min-w-0 flex-1 text-lq-xl font-extrabold leading-snug text-lq-text-primary break-words outline-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-lq-border-focus"
+        >
+          {prompt}
+        </h2>
+      </div>
 
       {statusText ? (
         <p className="sr-only" aria-live="polite">

@@ -85,6 +85,9 @@ export function FillBlankExerciseView({
       exerciseType={exercise.type}
       instruction="Fill in the missing word."
       prompt={exercise.prompt}
+      audioUrl={exercise.audio_url}
+      ttsText={exercise.tts_text}
+      ttsLang={exercise.tts_lang}
     >
       <div className="space-y-3">
         {!hasMarker ? (

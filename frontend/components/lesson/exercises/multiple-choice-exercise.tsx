@@ -86,6 +86,9 @@ export function MultipleChoiceExerciseView({
       exerciseType={exercise.type}
       instruction="Choose the best answer."
       prompt={exercise.prompt}
+      audioUrl={exercise.audio_url}
+      ttsText={exercise.tts_text}
+      ttsLang={exercise.tts_lang}
       statusText={statusText}
     >
       <div

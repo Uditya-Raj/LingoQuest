@@ -80,6 +80,9 @@ export function WordBankExerciseView({
       exerciseType={exercise.type}
       instruction="Build the translation by tapping words in order."
       prompt={exercise.prompt}
+      audioUrl={exercise.audio_url}
+      ttsText={exercise.tts_text}
+      ttsLang={exercise.tts_lang}
       statusText={statusText}
     >
       <div className="space-y-4">

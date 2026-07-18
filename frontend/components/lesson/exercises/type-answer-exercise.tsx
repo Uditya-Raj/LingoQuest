@@ -66,6 +66,9 @@ export function TypeAnswerExerciseView({
       exerciseType={exercise.type}
       instruction="Type your answer."
       prompt={exercise.prompt}
+      audioUrl={exercise.audio_url}
+      ttsText={exercise.tts_text}
+      ttsLang={exercise.tts_lang}
     >
       <div className="flex flex-col gap-2">
         <label
