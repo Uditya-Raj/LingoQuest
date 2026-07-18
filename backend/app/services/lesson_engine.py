@@ -1,9 +1,9 @@
-"""Lesson engine service for starting, retrieving, and answering attempts."""
+"""Lesson engine service for starting, retrieving, answering, and completing attempts."""
 import random
-from typing import Any
+from typing import Any, Callable
 
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, or_
+from sqlalchemy import select, update, func, or_
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import joinedload, selectinload
 
@@ -13,6 +13,10 @@ from app.models.progress import LessonAttempt, ExerciseAnswer
 from app.core.errors import NotFoundError, ConflictError
 from app.core.clock import get_clock
 from app.services import hearts
+from app.services import xp as xp_service
+from app.services import streak as streak_service
+from app.services import skill_progress as skill_progress_service
+from app.services import achievements as achievements_service
 from app.services.answer_grading import grade_answer
 from app.services.course_path import (
     get_skill_progress, has_active_attempt, derive_skill_state,
@@ -23,6 +27,13 @@ from app.schemas.lesson import (
     PublicExercise,
     TerminalSummary,
     AnswerResponse,
+    CompletionResponse,
+    CompletionSkillSummary,
+    CompletionXpSummary,
+    CompletionStreakSummary,
+    CompletionDailyGoalSummary,
+    CompletionAchievementSummary,
+    CompletionUserTotals,
 )
 from app.schemas.course import ExerciseOption, MatchPairsOptions
 
@@ -35,6 +46,15 @@ REQUIRED_EXERCISE_TYPES = [
     "fill_blank",
     "type_answer"
 ]
+
+# Test-only hook: raise after earlier completion mutations to verify rollback.
+_completion_failure_hook: Callable[[], None] | None = None
+
+
+def set_completion_failure_hook(hook: Callable[[], None] | None) -> None:
+    """Install or clear a test-only failure injector for complete_attempt."""
+    global _completion_failure_hook
+    _completion_failure_hook = hook
 
 
 def build_public_exercise(exercise: Exercise, position: int) -> PublicExercise:
@@ -491,4 +511,197 @@ async def submit_answer(
         next_heart_at=hearts.calculate_next_heart_at(user),
         lesson_status=attempt.status,  # type: ignore[arg-type]
         can_complete=can_complete,
+    )
+
+
+async def complete_attempt(
+    session: AsyncSession,
+    user: User,
+    attempt_id: int,
+) -> CompletionResponse:
+    """
+    Atomically complete a standard-mode attempt and apply gamification.
+
+    Timed-mode fixed XP / no-crown rules are staged for Phase 6B. Structure
+    keeps XP, streak, and achievement helpers reusable for that extension.
+    """
+    clock = get_clock()
+    now = clock.now()
+    today = clock.logical_date()
+
+    result = await session.execute(
+        select(LessonAttempt)
+        .where(LessonAttempt.id == attempt_id)
+        .options(
+            joinedload(LessonAttempt.lesson).joinedload(Lesson.skill)
+        )
+    )
+    attempt = result.scalar_one_or_none()
+    if attempt is None or attempt.user_id != user.id:
+        raise NotFoundError("Attempt", attempt_id)
+
+    if attempt.status == "completed":
+        raise ConflictError(
+            "Attempt is already completed",
+            code="ATTEMPT_ALREADY_COMPLETED",
+        )
+    if attempt.status == "failed":
+        raise ConflictError(
+            "Failed attempts cannot be completed",
+            code="ATTEMPT_FAILED",
+        )
+    if attempt.status != "in_progress":
+        raise ConflictError(
+            "Attempt is not in progress",
+            code="ATTEMPT_TERMINAL",
+        )
+
+    # Apply lazy regeneration before heart and response values.
+    hearts.apply_lazy_regeneration(user, now)
+
+    if user.hearts <= 0:
+        raise ConflictError(
+            "Cannot complete a lesson with zero hearts",
+            code="OUT_OF_HEARTS",
+        )
+
+    exercise_order = attempt.exercise_order
+    total_exercises = len(exercise_order)
+    if attempt.current_index != total_exercises:
+        raise ConflictError(
+            "Not all exercises have been answered",
+            code="LESSON_NOT_READY",
+        )
+
+    answer_count = (
+        await session.execute(
+            select(func.count())
+            .select_from(ExerciseAnswer)
+            .where(ExerciseAnswer.lesson_attempt_id == attempt.id)
+        )
+    ).scalar_one()
+    if answer_count != total_exercises:
+        raise ConflictError(
+            "Not all exercises have been answered",
+            code="LESSON_NOT_READY",
+        )
+
+    lesson = attempt.lesson
+    skill = lesson.skill
+
+    # Standard-mode XP only (Phase 6B adds timed fixed-20 path).
+    xp_award = xp_service.calculate_standard_xp(lesson.xp_reward, attempt.mistakes_count)
+
+    claim = await session.execute(
+        update(LessonAttempt)
+        .where(
+            LessonAttempt.id == attempt.id,
+            LessonAttempt.status == "in_progress",
+        )
+        .values(
+            status="completed",
+            completed_at=now,
+            activity_date=today,
+            xp_earned=xp_award.earned,
+        )
+    )
+    if claim.rowcount != 1:
+        await session.refresh(attempt)
+        if attempt.status == "completed":
+            raise ConflictError(
+                "Attempt is already completed",
+                code="ATTEMPT_ALREADY_COMPLETED",
+            )
+        if attempt.status == "failed":
+            raise ConflictError(
+                "Failed attempts cannot be completed",
+                code="ATTEMPT_FAILED",
+            )
+        raise ConflictError(
+            "Could not claim attempt for completion",
+            code="CONFLICT",
+        )
+
+    attempt.status = "completed"
+    attempt.completed_at = now
+    attempt.activity_date = today
+    attempt.xp_earned = xp_award.earned
+
+    user.total_xp += xp_award.earned
+
+    extended_today = streak_service.apply_streak(user, today)
+
+    progress, unlocked_skill_ids = (
+        await skill_progress_service.apply_standard_crown_and_unlocks(
+            session, user, skill, now
+        )
+    )
+
+    new_achievements = await achievements_service.evaluate_and_award_achievements(
+        session, user, now
+    )
+
+    if _completion_failure_hook is not None:
+        _completion_failure_hook()
+
+    await session.flush()
+
+    today_xp = await xp_service.calculate_today_xp(session, user.id, today)
+    daily_goal = xp_service.build_daily_goal_progress(today_xp, user.daily_goal_xp)
+
+    # Derive public skill status after crown update.
+    prereq_crowns: int | None = None
+    if skill.unlock_requires_skill_id is not None:
+        prereq_progress = await get_skill_progress(
+            session, user.id, skill.unlock_requires_skill_id
+        )
+        prereq_crowns = prereq_progress.crowns if prereq_progress else 0
+    skill_status = derive_skill_state(
+        skill, progress.crowns, True, prereq_crowns
+    )
+
+    return CompletionResponse(
+        attempt_id=attempt.id,
+        skill=CompletionSkillSummary(
+            id=skill.id,
+            title=skill.title,
+            new_crowns=progress.crowns,
+            max_level=skill.max_level,
+            status=skill_status,
+        ),
+        xp=CompletionXpSummary(
+            base=xp_award.base,
+            perfect_bonus=xp_award.perfect_bonus,
+            earned=xp_award.earned,
+            perfect=xp_award.perfect,
+        ),
+        streak=CompletionStreakSummary(
+            current=user.current_streak,
+            longest=user.longest_streak,
+            extended_today=extended_today,
+            activity_date=today.isoformat(),
+        ),
+        daily_goal=CompletionDailyGoalSummary(
+            today_xp=daily_goal.today_xp,
+            goal_xp=daily_goal.goal_xp,
+            progress=daily_goal.progress,
+            reached=daily_goal.reached,
+        ),
+        unlocked_skill_ids=unlocked_skill_ids,
+        achievements_unlocked=[
+            CompletionAchievementSummary(
+                key=a.key,
+                title=a.title,
+                description=a.description,
+                icon=a.icon,
+            )
+            for a in new_achievements
+        ],
+        user_totals=CompletionUserTotals(
+            total_xp=user.total_xp,
+            hearts=user.hearts,
+            max_hearts=user.max_hearts,
+            gems=user.gems,
+        ),
+        completed_at=now,
     )

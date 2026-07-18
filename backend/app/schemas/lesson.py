@@ -68,3 +68,72 @@ class AnswerResponse(BaseModel):
     next_heart_at: Optional[datetime] = None
     lesson_status: Literal["in_progress", "completed", "failed"]
     can_complete: bool
+
+
+class CompletionSkillSummary(BaseModel):
+    """Skill slice of the completion response."""
+
+    id: int
+    title: str
+    new_crowns: int
+    max_level: int
+    status: Literal["locked", "available", "in_progress", "completed"]
+
+
+class CompletionXpSummary(BaseModel):
+    """XP breakdown for a successful completion."""
+
+    base: int
+    perfect_bonus: int
+    earned: int
+    perfect: bool
+
+
+class CompletionStreakSummary(BaseModel):
+    """Streak slice after completion."""
+
+    current: int
+    longest: int
+    extended_today: bool
+    activity_date: str
+
+
+class CompletionDailyGoalSummary(BaseModel):
+    """Daily goal progress after including this completion."""
+
+    today_xp: int
+    goal_xp: int
+    progress: float
+    reached: bool
+
+
+class CompletionAchievementSummary(BaseModel):
+    """Newly unlocked achievement."""
+
+    key: str
+    title: str
+    description: str
+    icon: str
+
+
+class CompletionUserTotals(BaseModel):
+    """Updated learner totals after completion."""
+
+    total_xp: int
+    hearts: int
+    max_hearts: int
+    gems: int
+
+
+class CompletionResponse(BaseModel):
+    """POST /api/lessons/{attempt_id}/complete response body."""
+
+    attempt_id: int
+    skill: CompletionSkillSummary
+    xp: CompletionXpSummary
+    streak: CompletionStreakSummary
+    daily_goal: CompletionDailyGoalSummary
+    unlocked_skill_ids: list[int]
+    achievements_unlocked: list[CompletionAchievementSummary]
+    user_totals: CompletionUserTotals
+    completed_at: datetime

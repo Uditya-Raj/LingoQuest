@@ -1,13 +1,26 @@
 """Hearts service for regeneration and refill logic."""
+from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
 from typing import Optional
 
+from app.core.errors import ConflictError, DomainError
 from app.models.user import User
-from app.core.clock import Clock
 
 
 # Constants
 HEART_REGEN_MINUTES = 15
+HEART_REFILL_GEM_COST = 20
+
+
+@dataclass(frozen=True)
+class HeartRefillResult:
+    """Result of a successful gem refill."""
+
+    hearts: int
+    max_hearts: int
+    gems: int
+    gems_spent: int
+    next_heart_at: Optional[datetime] = None
 
 
 def ensure_utc_aware(dt: datetime) -> datetime:
@@ -133,3 +146,45 @@ def lose_heart(user: User, now: datetime) -> None:
     if was_full or user.heart_regen_anchor_at is None:
         user.heart_regen_anchor_at = now
 
+
+def refill_hearts(user: User, confirm_spend: bool, now: datetime) -> HeartRefillResult:
+    """
+    Spend gems to refill hearts to max after lazy regeneration.
+
+    HTTP route is Phase 6; this service and its unit tests belong to Phase 5B.
+    Never spends gems when refill fails.
+    """
+    if confirm_spend is not True:
+        raise DomainError(
+            code="REFILL_NOT_CONFIRMED",
+            message="Gem spend must be explicitly confirmed",
+            status_code=400,
+        )
+
+    now = ensure_utc_aware(now)
+    apply_lazy_regeneration(user, now)
+
+    if user.hearts >= user.max_hearts:
+        raise ConflictError(
+            "Hearts are already full",
+            code="HEARTS_ALREADY_FULL",
+        )
+
+    if user.gems < HEART_REFILL_GEM_COST:
+        raise ConflictError(
+            f"Need {HEART_REFILL_GEM_COST} gems to refill hearts",
+            code="INSUFFICIENT_GEMS",
+            details={"gems": user.gems, "required": HEART_REFILL_GEM_COST},
+        )
+
+    user.gems -= HEART_REFILL_GEM_COST
+    user.hearts = user.max_hearts
+    user.heart_regen_anchor_at = None
+
+    return HeartRefillResult(
+        hearts=user.hearts,
+        max_hearts=user.max_hearts,
+        gems=user.gems,
+        gems_spent=HEART_REFILL_GEM_COST,
+        next_heart_at=None,
+    )

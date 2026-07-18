@@ -10,6 +10,7 @@ from app.models.progress import UserSkillProgress, LessonAttempt
 from app.core.errors import NotFoundError
 from app.core.clock import Clock, get_clock
 from app.services import hearts
+from app.services.xp import calculate_today_xp_for_clock
 from app.schemas.common import LearnerSummary
 from app.schemas.course import (
     CourseResponse, CourseInfo, UnitSummary, SkillSummary,
@@ -116,19 +117,7 @@ async def calculate_today_xp(
     clock: Clock
 ) -> int:
     """Calculate today's XP from completed attempts with matching activity_date."""
-    today = clock.logical_date()
-    
-    result = await session.execute(
-        select(LessonAttempt.xp_earned)
-        .where(
-            LessonAttempt.user_id == user_id,
-            LessonAttempt.status == "completed",
-            LessonAttempt.activity_date == today
-        )
-    )
-    
-    xp_values = result.scalars().all()
-    return sum(xp or 0 for xp in xp_values)
+    return await calculate_today_xp_for_clock(session, user_id, clock)
 
 
 async def get_course_path(

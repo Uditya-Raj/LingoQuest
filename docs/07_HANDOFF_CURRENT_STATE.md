@@ -38,14 +38,14 @@ when its exit checks in `/docs/06_IMPLEMENTATION_PHASES.md` pass.
 |---|---|
 | Product | LingoPath (repository: LingoQuest) |
 | Repository state | `INSPECTED` |
-| Current phase | Phase 5A — Exercise grading and answer transaction |
-| Current phase status | `VERIFIED` |
-| Next action | Perform Phase 5B — Completion and gamification. |
+| Current phase | Phase 5B — Completion and gamification |
+| Current phase status | `IMPLEMENTED_UNVERIFIED` |
+| Next action | Perform Sonnet audit of Phase 5B against exit checks, then mark VERIFIED if clean. |
 | Recommended model | Claude Sonnet |
-| Required skill | None for Phase 5B |
+| Required skill | None for Phase 5B audit |
 | Last updated | 2026-07-18 |
-| Updated by | Phase 5A implementation |
-| Active blocker | None. Phase 5A complete; timed-practice mode/failure columns deferred to Phase 6B. |
+| Updated by | Phase 5B implementation (Cursor Auto) |
+| Active blocker | None. Phase 5B implemented and locally tested; Sonnet audit still required before VERIFIED. |
 
 ---
 
@@ -88,12 +88,12 @@ Phase 1 scaffolding is complete. Backend and frontend foundations are verified.
 | Skill detail/start/resume API | `VERIFIED` | GET /api/skills/{id}, POST /api/skills/{id}/start working with resume logic. |
 | Lesson retrieve API | `VERIFIED` | GET /api/lessons/{attempt_id} retrieves persisted attempts correctly. |
 | Exercise answer validation | `VERIFIED` | Pure graders for all five types; POST /api/lessons/{attempt_id}/answer with audit rows. |
-| Lesson completion transaction | `NOT_STARTED` | Phase 5B. |
-| Hearts loss, regeneration, and refill | `PARTIAL` | Lazy regeneration + single-heart loss on wrong answers verified; gem refill is Phase 5B. |
-| XP, daily goal, and total consistency | `NOT_STARTED` | Phase 5B. |
-| Streak clock logic | `VERIFIED` | Clock abstraction implemented with real and debug clocks, logical_date() added. |
-| Crowns and server-derived locks | `VERIFIED` | Skill state derivation working, crowns tracked in progress. |
-| Achievement evaluation | `NOT_STARTED` | Phase 5B. |
+| Lesson completion transaction | `IMPLEMENTED_UNVERIFIED` | POST /api/lessons/{attempt_id}/complete; Auto tests pass; Sonnet audit pending. |
+| Hearts loss, regeneration, and refill | `IMPLEMENTED_UNVERIFIED` | Regen + loss (5A) + gem refill service (5B); HTTP refill route is Phase 6. |
+| XP, daily goal, and total consistency | `IMPLEMENTED_UNVERIFIED` | Standard XP + perfect bonus + today XP + goal cap; cache invariant asserted in tests. |
+| Streak clock logic | `VERIFIED` | Clock abstraction + streak service with same/next/missed/longest/clock-conflict. |
+| Crowns and server-derived locks | `IMPLEMENTED_UNVERIFIED` | Crown/practice + unlock transitions in skill_progress; path derivation reused. |
+| Achievement evaluation | `IMPLEMENTED_UNVERIFIED` | All four criteria types; unique-constraint idempotency; newly unlocked only. |
 | Profile API | `NOT_STARTED` | Not implemented. |
 | Leaderboard API | `NOT_STARTED` | Not implemented. |
 | Content-management API | `NOT_STARTED` | Not implemented. |
@@ -106,7 +106,7 @@ Phase 1 scaffolding is complete. Backend and frontend foundations are verified.
 | Content manager UI | `NOT_STARTED` | Not implemented. |
 | Responsive accessibility | `NOT_STARTED` | Not implemented. |
 | Dark mode bonus | `NOT_STARTED` | Zustand theme store created but no theme implementation. |
-| Automated test suite | `VERIFIED` | 95 tests pass: 2 health + 21 schema + 7 seed + 19 Phase 4 + 31 grading unit + 15 Phase 5A API. |
+| Automated test suite | `IMPLEMENTED_UNVERIFIED` | **131 passed** after Phase 5B (prior 95 + 36 Phase 5B). Sonnet audit pending. |
 | Production builds | `VERIFIED` | Both frontend build and backend startup verified. |
 | Deployment and persistent SQLite | `NOT_STARTED` | Deferred; deployment spec missing. |
 | README and submission evidence | `NOT_STARTED` | No `README.md` exists. |
@@ -117,26 +117,29 @@ Phase 1 scaffolding is complete. Backend and frontend foundations are verified.
 
 ### Phase
 
-Phase 5A — Exercise grading and answer transaction
+Phase 5B — Completion and gamification
 
 ### Objective
 
-Implement pure graders for all five exercise types and the atomic standard-mode answer endpoint.
+Implement atomic standard-mode lesson completion and gamification services.
 
 ### Allowed work
 
-- Pure grading service (no DB mutation)
-- POST /api/lessons/{attempt_id}/answer
-- Standard-mode heart loss and zero-heart failure in the answer transaction
-- Unit and API/integration tests for Phase 5A
+- POST /api/lessons/{attempt_id}/complete
+- XP, daily goal, streak, crowns/unlocks, achievements services
+- Heart refill service (HTTP route deferred to Phase 6)
+- Unit matrix + integration scenarios
+- Handoff update; status IMPLEMENTED_UNVERIFIED until Sonnet audit
 
 ### Exit evidence required
 
-- Unit tests cover correct/incorrect/malformed cases for all five types
-- Out-of-order and duplicate requests leave state unchanged
-- Wrong answer removes one heart and advances once
-- Zero heart fails in the same response and awards no XP
-- Correct answers remain hidden until submission
+- Gamification unit-test matrix passes
+- Early, failed, and duplicate completion conflict without effects
+- Successful completion updates all state atomically
+- Concurrent completion mutates once; rollback restores prior state
+- Profile/path/leaderboard sources agree after refresh
+- 20-gem refill works; failed refill spends nothing
+- Sonnet audit before VERIFIED (pending)
 
 ---
 
@@ -144,10 +147,9 @@ Implement pure graders for all five exercise types and the atomic standard-mode 
 
 | Date | Category | Command | Result | Notes |
 |---|---|---|---|---|
-| 2026-07-18 | grading unit | `python -m pytest tests/test_answer_grading.py -v` | 31 passed | All five types: correct/incorrect/malformed/unicode |
-| 2026-07-18 | Phase 5A API | `python -m pytest tests/test_phase5a_api.py -v` | 15 passed | Mutation, idempotency, failure, OpenAPI |
-| 2026-07-18 | all backend | `python -m pytest tests/ -v` | **95 passed** | 2 health + 21 schema + 7 seed + 19 Phase 4 + 31 grading + 15 Phase 5A |
-| 2026-07-18 | alembic current | (prior) | Rev: ca24b65a41a3 (head) | Initial migration unchanged; no Phase 5A schema edit |
+| 2026-07-18 | Phase 5B focused | `python -m pytest tests/test_gamification_unit.py tests/test_phase5b_api.py -v` | **36 passed** | Unit matrix + 13 integration scenarios |
+| 2026-07-18 | all backend | `python -m pytest tests/ -q` | **131 passed** | Prior 95 + 36 Phase 5B; no regressions |
+| 2026-07-18 | alembic | (unchanged) | Rev: ca24b65a41a3 (head) | Initial migration not edited; timed columns staged for 6B |
 
 ---
 
@@ -169,19 +171,19 @@ not sufficient evidence for its buttons, persistence, errors, or responsive beha
 | Item | Verified value |
 |---|---|
 | Database engine/path | SQLite at `./lingopath.db` |
-| Current Alembic revision | ca24b65a41a3 (head) - initial schema; **no Phase 5A migration** |
+| Current Alembic revision | ca24b65a41a3 (head) - initial schema; **no Phase 5B migration** |
 | SQLite foreign keys enabled | Yes - verified via PRAGMA test and event listener in `database.py` |
 | Seed command | `python -m app.seed.seed_data [--reference-date YYYY-MM-DD] [--reset --yes]` |
 | Seed rerun behavior | Idempotent - detects existing Maya history and skips, no duplicates |
 | Default learner | Maya (maya_demo) - content admin, 340 XP, 6-day streak, 4 hearts, rank 3 |
 | Expected row counts match `/docs/05_SEED_DATA.md` | YES - 60 exercises, 5 users, 142 attempts, 1,420 answers, 25 progress rows (5 per user), 6 achievements |
-| XP consistency | ALL USERS - Zero difference between stored total_xp and computed attempt XP |
+| XP consistency | ALL USERS - Zero difference between stored total_xp and computed attempt XP (asserted after every Phase 5B completion scenario) |
 | Exercise distribution | ALL SKILLS - Exactly 12 exercises per skill with required type distribution (3 MC, 2 WB, 2 MP, 2 FB, 3 TA) |
 | Contract validation | Zero invalid exercise contracts - all 60 pass shared validators |
 | Foreign key integrity | Zero violations - PRAGMA foreign_key_check returns empty |
 | Active attempts | Zero - no in-progress seeded attempts |
 | Existing local data requiring preservation | None - fresh repository |
-| Staged schema (Phase 6B) | `mode`, `expires_at`, `failure_reason` not yet on `lesson_attempts`; standard failure sets `status=failed` + `completed_at` only |
+| Staged schema (Phase 6B) | `mode`, `expires_at`, `failure_reason` not yet on `lesson_attempts`; standard completion only |
 
 ---
 
@@ -191,46 +193,36 @@ Fill the result and test reference after each endpoint group is verified.
 
 | Contract group | Result | Test or command reference |
 |---|---|---|
-| Course path and derived locks | **Verified** | `test_phase4_api.py::TestCourseAPI` - all 4 tests pass |
-| Skill detail/start/retrieve/resume | **Verified** | `test_phase4_api.py` start/retrieve suites - 13 tests pass |
-| Lazy heart regeneration | **Verified** | `test_phase4_api.py::TestHeartRegeneration` - 2 tests pass |
-| All five answer shapes | **Verified** | `test_answer_grading.py` (31) + `test_phase5a_api.py` API cases |
-| Attempt ordering/idempotency/conflicts | **Verified** | Out-of-order, duplicate sequential, concurrent uniqueness, terminal, foreign 404 |
-| Completion transaction | Not verified | Phase 5B |
-| Hearts status/refill | Not verified | Phase 5B |
+| Course path and derived locks | **Verified** | `test_phase4_api.py::TestCourseAPI` |
+| Skill detail/start/retrieve/resume | **Verified** | `test_phase4_api.py` start/retrieve suites |
+| Lazy heart regeneration | **Verified** | `test_phase4_api.py::TestHeartRegeneration` |
+| All five answer shapes | **Verified** | `test_answer_grading.py` + `test_phase5a_api.py` |
+| Attempt ordering/idempotency/conflicts | **Verified** | Phase 5A API suite |
+| Completion transaction | **Implemented (audit pending)** | `test_phase5b_api.py` — early/failed/perfect/duplicate/concurrent/rollback |
+| Hearts status/refill | **Service only** | `test_gamification_unit.py::TestHeartRefill`; HTTP route Phase 6 |
 | User profile/settings | Not verified | — |
 | Leaderboard | Not verified | — |
-| Achievements | Not verified | — |
+| Achievements | **Service + completion response** | Unit + `test_achievement_threshold_crossed_by_completion` |
 | Content management | Not verified | — |
 | Debug clock safety | Not verified | — |
-| Standard error envelope/status codes | **Verified** | ATTEMPT_NOT_FOUND, ATTEMPT_TERMINAL, ANSWER_OUT_OF_ORDER, ANSWER_ALREADY_SUBMITTED, INVALID_ANSWER_SHAPE, INVALID_OPTION_REFERENCE |
+| Standard error envelope/status codes | **Extended** | LESSON_NOT_READY, ATTEMPT_ALREADY_COMPLETED, ATTEMPT_FAILED, OUT_OF_HEARTS, CLOCK_BEFORE_ACTIVITY, HEARTS_ALREADY_FULL, INSUFFICIENT_GEMS, REFILL_NOT_CONFIRMED |
 
-### Phase 5A grader coverage
-
-| Type | Correct | Incorrect | Unknown ref | Dup/incomplete | Shape/extra | Unicode/norm |
-|---|---|---|---|---|---|---|
-| multiple_choice | yes | yes | yes | n/a | yes | n/a |
-| translate_word_bank | yes | yes | yes | duplicate IDs | yes | n/a |
-| match_pairs | yes | yes | yes | dup + incomplete | yes | order-independent sets |
-| fill_blank | yes | yes | n/a | n/a | yes | case/whitespace/NFKC |
-| type_answer | yes | yes | n/a | n/a | yes | accepted variants + NFKC |
-
-### Phase 5A mutation / idempotency evidence
+### Phase 5B atomicity / concurrency evidence
 
 | Case | Result |
 |---|---|
-| Correct answer | Advances once; no heart loss |
-| Wrong answer | Advances once; exactly one heart lost; mistakes/hearts_lost +1 |
-| Final answer with hearts | `can_complete=true`, status still `in_progress` |
-| Zero-heart wrong answer | Same response `lesson_status=failed`; `completed_at` set; no XP/streak change |
-| Out-of-order / wrong exercise | 409 ANSWER_OUT_OF_ORDER; state unchanged |
-| Sequential duplicate | 409; state unchanged |
-| Concurrent duplicate | One ok + one ANSWER_ALREADY_SUBMITTED; one answer row; index +1 once |
-| Malformed / bad option | 400; no heart deduction |
-| Terminal attempt | 409 ATTEMPT_TERMINAL |
-| Foreign attempt | 404 ATTEMPT_NOT_FOUND |
-| Start/retrieve | No `correct_answer` fields |
-| OpenAPI | `AnswerSubmitRequest` + `AnswerResponse` registered |
+| Early complete | 409 LESSON_NOT_READY; no XP/streak/crown change |
+| Failed complete | 409 ATTEMPT_FAILED; no effects |
+| Non-perfect complete | 10 XP; crown +1; streak rules applied |
+| Perfect complete | 15 XP (base 10 + floor bonus 5) |
+| Duplicate complete | 409 ATTEMPT_ALREADY_COMPLETED; no second effects |
+| Concurrent complete | One `ok` + one `ATTEMPT_ALREADY_COMPLETED`; XP awarded once |
+| Injected late-step failure | Full rollback; retry succeeds once |
+| Same/next/skipped logical dates | extended_today false / increment / reset to 1 |
+| Crown cap + unlock | Replay at max caps crowns; Family→Questions unlock returned |
+| Achievement threshold | Current completion can unlock (e.g. streak_7) |
+| XP cache invariant | `users.total_xp == SUM(completed xp_earned)` after every scenario |
+| Completion OpenAPI | `CompletionResponse` registered; path `/api/lessons/{attempt_id}/complete` |
 
 ---
 
@@ -284,6 +276,11 @@ decisions or approved deviations discovered while implementing.
 | 2026-07-18 | Phase 4: Standard-mode attempt response includes timed-practice defaults | mode=standard, expires_at=null, remaining_seconds=null; timed implementation deferred to Phase 6B | `backend/app/schemas/lesson.py`, services |
 | 2026-07-18 | Phase 5A: Graders are mode-agnostic; answer path is standard-only | Phase 6B will add timed expiry / no-heart rules without duplicating graders | `answer_grading.py`, `lesson_engine.submit_answer` |
 | 2026-07-18 | Phase 5A: Zero-heart failure does not persist `failure_reason` yet | Column arrives in Phase 6B forward migration; status+completed_at still stamped | `lesson_engine.py`, handoff staging note |
+| 2026-07-18 | Phase 5B: Completion uses conditional UPDATE claim (`status=in_progress`) | Concurrent completes produce one success + ATTEMPT_ALREADY_COMPLETED | `lesson_engine.complete_attempt` |
+| 2026-07-18 | Phase 5B: Standard XP helper only; timed fixed-20 deferred | Phase 6B extends without duplicating streak/achievement rules | `xp.py`, `lesson_engine.complete_attempt` |
+| 2026-07-18 | Phase 5B: Heart refill is service-only | HTTP GET/POST hearts endpoints remain Phase 6 | `hearts.refill_hearts` |
+| 2026-07-18 | Phase 5B: Test-only `_completion_failure_hook` for rollback proof | Required integration scenario without weakening production path | `lesson_engine.set_completion_failure_hook` |
+| 2026-07-18 | Phase 5B marked IMPLEMENTED_UNVERIFIED | Cursor Auto implemented; Sonnet audit required before VERIFIED | handoff |
 
 If a decision changes an API, schema, gamification rule, acceptance criterion, or deployment
 contract, update the source specification in the same phase. This handoff is not a replacement
@@ -297,24 +294,29 @@ for correcting the source document.
 |---|---|---|---|---|
 | Info | `/docs/09_DEPLOYMENT.md` not yet created | No impact until deployment phase | Create when Phase 15 starts | Open |
 | Info | Product name is LingoPath but repository is named LingoQuest | Cosmetic inconsistency | Intentional - LingoPath is the user-facing product name per requirements | Acknowledged |
-| Info | Timed practice + `failure_reason` / `mode` / `expires_at` columns staged | Answer path is standard-mode only; retrieve `terminal_summary.failure_reason` stays null until Phase 6B | Phase 6B forward migration + timed start/answer rules | Open (by design) |
+| Info | Timed practice + `failure_reason` / `mode` / `expires_at` columns staged | Standard completion only; Phase 6B adds timed start/answer/complete | Phase 6B forward migration | Open (by design) |
+| Info | Phase 5B Sonnet audit pending | Status remains IMPLEMENTED_UNVERIFIED | Run Sonnet audit against exit checks | Open |
 
 ---
 
 ## Files changed in the latest phase
 
-Phase 5A implemented pure graders and the standard-mode answer transaction:
+Phase 5B implemented atomic standard-mode completion and gamification services:
 
 | File | Change | Reason |
 |---|---|---|
-| `backend/app/services/answer_grading.py` | Created | Pure NFKC graders for all five types; shape/option errors |
-| `backend/app/services/hearts.py` | Updated | Added `lose_heart()` after lazy regeneration |
-| `backend/app/services/lesson_engine.py` | Updated | `submit_answer()` atomic mutation; IntegrityError → conflict |
-| `backend/app/schemas/lesson.py` | Updated | `AnswerSubmitRequest` / `AnswerResponse` OpenAPI models |
-| `backend/app/routers/lessons.py` | Updated | Thin POST `/lessons/{attempt_id}/answer` route |
-| `backend/tests/test_answer_grading.py` | Created | 31 pure unit tests (U-GRADE coverage) |
-| `backend/tests/test_phase5a_api.py` | Created | 15 API/integration tests including concurrent duplicate |
-| `docs/07_HANDOFF_CURRENT_STATE.md` | Updated | Phase 5A VERIFIED evidence and next phase |
+| `backend/app/services/xp.py` | Created | Standard XP, today XP, daily-goal progress, XP sum invariant helper |
+| `backend/app/services/streak.py` | Created | Logical-date streak transitions + CLOCK_BEFORE_ACTIVITY |
+| `backend/app/services/skill_progress.py` | Created | Crown/practice updates + newly unlocked skill IDs |
+| `backend/app/services/achievements.py` | Created | Criteria evaluation + idempotent awards |
+| `backend/app/services/hearts.py` | Updated | `refill_hearts` with confirm/regen/full/gems rules |
+| `backend/app/services/lesson_engine.py` | Updated | `complete_attempt` orchestration + failure hook |
+| `backend/app/services/course_path.py` | Updated | Delegate today XP to `xp.py` |
+| `backend/app/schemas/lesson.py` | Updated | `CompletionResponse` and nested models |
+| `backend/app/routers/lessons.py` | Updated | Thin POST `/lessons/{attempt_id}/complete` |
+| `backend/tests/test_gamification_unit.py` | Created | Phase 5B unit matrix |
+| `backend/tests/test_phase5b_api.py` | Created | Phase 5B integration scenarios |
+| `docs/07_HANDOFF_CURRENT_STATE.md` | Updated | Phase 5B IMPLEMENTED_UNVERIFIED evidence |
 
 ---
 
@@ -323,35 +325,32 @@ Phase 5A implemented pure graders and the standard-mode answer transaction:
 | Check | Result |
 |---|---|
 | Current branch | `main` |
-| Pre-existing unrelated edits | Preserved; Phase 5A only touched listed backend/docs files |
-| Files that overlap planned phase work | None beyond Phase 5A scope |
+| Pre-existing unrelated edits | Preserved; Phase 5B touched listed backend/docs files only |
+| Files that overlap planned phase work | None beyond Phase 5B scope |
 
 ---
 
 ## Exact next request for Cursor
 
-Phase 5A is complete. Use this request to begin Phase 5B:
+Phase 5B is implemented but not yet Sonnet-audited. Use this request next:
 
 ```text
-Perform LingoQuest Phase 5B from /docs/06_IMPLEMENTATION_PHASES.md using Claude Sonnet.
+Perform LingoQuest Phase 5B Sonnet audit from /docs/06_IMPLEMENTATION_PHASES.md using Claude Sonnet.
 
 Read these first:
 1. .cursor/rules/project-rules.mdc
 2. /CLAUDE.md
 3. /docs/07_HANDOFF_CURRENT_STATE.md
 4. The Phase 5B section of /docs/06_IMPLEMENTATION_PHASES.md
-5. /docs/02_DATABASE_SCHEMA.md — completion-related tables
-6. /docs/03_API_SPEC.md — Complete, Hearts, Achievements response contracts
-7. /docs/04_GAMIFICATION_LOGIC.md — remaining sections
+5. Completion contracts in /docs/03_API_SPEC.md and /docs/04_GAMIFICATION_LOGIC.md
 
-Implement atomic lesson completion and gamification services: hearts regeneration/refill, XP and
-perfect bonus, logical-date daily XP/goal, streak, crowns/practice, derived unlock transitions,
-achievements, and POST /api/lessons/{attempt_id}/complete. Use one captured clock value and one
-transaction. Implement conditional/idempotent completion so concurrent requests can produce
-effects only once. Return the exact completion contract.
-
-Run Phase 5B exit checks and update the handoff. Stop after Phase 5B.
+Audit the Auto implementation against every Phase 5B exit check and the gamification unit/
+integration matrix. Re-run focused and full backend tests. Fix any gaps. If clean, mark Phase 5B
+VERIFIED in the handoff and set the next action to Phase 6. Stop after the audit.
 ```
+
+After Phase 5B is VERIFIED, Phase 6 is next (remaining backend endpoints). Phase 6B remains
+staged for timed-practice columns and behavior.
 
 ---
 
