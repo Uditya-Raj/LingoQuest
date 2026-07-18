@@ -111,3 +111,25 @@ def calculate_seconds_until_next(user: User, now: datetime) -> Optional[int]:
     now = ensure_utc_aware(now)
     seconds = max(0, int((next_heart_at - now).total_seconds()))
     return seconds
+
+
+def lose_heart(user: User, now: datetime) -> None:
+    """
+    Deduct exactly one heart after lazy regeneration has already been applied.
+
+    Floors at zero. Sets the regen anchor when losing from a full set or when
+    no anchor exists. Does not reset an existing anchor on further losses.
+    """
+    now = ensure_utc_aware(now)
+
+    if user.hearts <= 0:
+        # Defensive: an in-progress standard answer should not reach this state.
+        user.hearts = 0
+        return
+
+    was_full = user.hearts == user.max_hearts
+    user.hearts -= 1
+
+    if was_full or user.heart_regen_anchor_at is None:
+        user.heart_regen_anchor_at = now
+

@@ -1,21 +1,29 @@
-"""Lesson engine service for starting and retrieving attempts."""
+"""Lesson engine service for starting, retrieving, and answering attempts."""
 import random
-from datetime import datetime
+from typing import Any
+
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, func
+from sqlalchemy import select, or_
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import joinedload, selectinload
 
 from app.models.user import User
 from app.models.course import Skill, Lesson, Exercise
-from app.models.progress import LessonAttempt
+from app.models.progress import LessonAttempt, ExerciseAnswer
 from app.core.errors import NotFoundError, ConflictError
-from app.core.clock import Clock, get_clock
+from app.core.clock import get_clock
 from app.services import hearts
+from app.services.answer_grading import grade_answer
 from app.services.course_path import (
     get_skill_progress, has_active_attempt, derive_skill_state,
-    calculate_today_xp, build_learner_summary
+    calculate_today_xp,
 )
-from app.schemas.lesson import LessonAttemptResponse, PublicExercise, TerminalSummary
+from app.schemas.lesson import (
+    LessonAttemptResponse,
+    PublicExercise,
+    TerminalSummary,
+    AnswerResponse,
+)
 from app.schemas.course import ExerciseOption, MatchPairsOptions
 
 
@@ -332,3 +340,155 @@ async def get_attempt(
     """
     response, _ = await retrieve_attempt(session, user, attempt_id, resumed=True)
     return response
+
+
+async def _load_owned_attempt(
+    session: AsyncSession,
+    user: User,
+    attempt_id: int,
+) -> LessonAttempt:
+    """Load an attempt owned by the current user, or raise 404."""
+    result = await session.execute(
+        select(LessonAttempt).where(LessonAttempt.id == attempt_id)
+    )
+    attempt = result.scalar_one_or_none()
+    if attempt is None or attempt.user_id != user.id:
+        raise NotFoundError("Attempt", attempt_id)
+    return attempt
+
+
+async def submit_answer(
+    session: AsyncSession,
+    user: User,
+    attempt_id: int,
+    exercise_id: int,
+    position: int,
+    answer: dict[str, Any],
+) -> AnswerResponse:
+    """
+    Grade and persist one answer for a standard-mode in-progress attempt.
+
+    Timed-practice expiry / no-heart rules are staged for Phase 6B. This path
+    always applies standard heart loss. Graders remain mode-agnostic.
+    """
+    clock = get_clock()
+    now = clock.now()
+
+    attempt = await _load_owned_attempt(session, user, attempt_id)
+
+    if attempt.status != "in_progress":
+        raise ConflictError(
+            "Attempt is already completed or failed",
+            code="ATTEMPT_TERMINAL",
+        )
+
+    # Phase 6B: if mode == timed and now > expires_at → fail with time_expired
+
+    if position != attempt.current_index:
+        raise ConflictError(
+            f"Expected position {attempt.current_index}, got {position}",
+            code="ANSWER_OUT_OF_ORDER",
+        )
+
+    exercise_order = attempt.exercise_order
+    if position < 0 or position >= len(exercise_order):
+        raise ConflictError(
+            f"Position {position} is out of range",
+            code="ANSWER_OUT_OF_ORDER",
+        )
+
+    expected_exercise_id = exercise_order[position]
+    if exercise_id != expected_exercise_id:
+        raise ConflictError(
+            f"Expected exercise_id {expected_exercise_id}, got {exercise_id}",
+            code="ANSWER_OUT_OF_ORDER",
+        )
+
+    existing_result = await session.execute(
+        select(ExerciseAnswer).where(
+            ExerciseAnswer.lesson_attempt_id == attempt.id,
+            or_(
+                ExerciseAnswer.position == position,
+                ExerciseAnswer.exercise_id == exercise_id,
+            ),
+        )
+    )
+    if existing_result.scalar_one_or_none() is not None:
+        raise ConflictError(
+            "Answer already submitted for this position or exercise",
+            code="ANSWER_ALREADY_SUBMITTED",
+        )
+
+    exercise_result = await session.execute(
+        select(Exercise).where(Exercise.id == exercise_id)
+    )
+    exercise = exercise_result.scalar_one_or_none()
+    if exercise is None:
+        raise NotFoundError("Exercise", exercise_id)
+
+    # Validate shape / references and grade before any mutation besides regen.
+    grade_result = grade_answer(
+        exercise.type,
+        exercise.options,
+        exercise.correct_answer,
+        answer,
+    )
+
+    # Standard mode: apply lazy regeneration before returning/mutating hearts.
+    hearts.apply_lazy_regeneration(user, now)
+
+    answer_row = ExerciseAnswer(
+        lesson_attempt_id=attempt.id,
+        exercise_id=exercise.id,
+        position=position,
+        exercise_type=exercise.type,
+        submitted_answer=answer,
+        correct_answer_snapshot=grade_result.revealed_correct_answer,
+        is_correct=grade_result.is_correct,
+        answered_at=now,
+    )
+    session.add(answer_row)
+
+    attempt.current_index = attempt.current_index + 1
+
+    if not grade_result.is_correct:
+        attempt.mistakes_count = attempt.mistakes_count + 1
+        # Standard-mode heart loss only (Phase 6B adds timed no-heart path).
+        hearts.lose_heart(user, now)
+        attempt.hearts_lost = attempt.hearts_lost + 1
+        if user.hearts == 0:
+            attempt.status = "failed"
+            attempt.completed_at = now
+            # Phase 6B forward migration will persist failure_reason=out_of_hearts
+
+    try:
+        await session.flush()
+    except IntegrityError as exc:
+        # Final duplicate/concurrency guard — uniqueness on position/exercise.
+        raise ConflictError(
+            "Answer already submitted for this position or exercise",
+            code="ANSWER_ALREADY_SUBMITTED",
+        ) from exc
+
+    total_exercises = len(exercise_order)
+    can_complete = (
+        attempt.current_index == total_exercises
+        and attempt.status == "in_progress"
+        and user.hearts > 0
+    )
+
+    return AnswerResponse(
+        attempt_id=attempt.id,
+        exercise_id=exercise.id,
+        position=position,
+        is_correct=grade_result.is_correct,
+        correct_answer=grade_result.revealed_correct_answer,
+        current_index=attempt.current_index,
+        total_exercises=total_exercises,
+        mistakes_count=attempt.mistakes_count,
+        hearts_remaining=user.hearts,
+        max_hearts=user.max_hearts,
+        next_heart_at=hearts.calculate_next_heart_at(user),
+        lesson_status=attempt.status,  # type: ignore[arg-type]
+        can_complete=can_complete,
+    )

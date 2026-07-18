@@ -1,11 +1,11 @@
-"""Lesson attempt start and retrieve routes."""
+"""Lesson attempt start, retrieve, and answer routes."""
 from fastapi import APIRouter, Depends, status, Response
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_session
 from app.dependencies.auth import get_current_user
 from app.models.user import User
-from app.schemas.lesson import LessonAttemptResponse
+from app.schemas.lesson import LessonAttemptResponse, AnswerSubmitRequest, AnswerResponse
 from app.services import lesson_engine
 
 
@@ -51,3 +51,29 @@ async def get_lesson_attempt(
     Unknown or foreign attempts return 404.
     """
     return await lesson_engine.get_attempt(session, user, attempt_id)
+
+
+@router.post(
+    "/lessons/{attempt_id}/answer",
+    response_model=AnswerResponse,
+    status_code=status.HTTP_200_OK,
+)
+async def submit_lesson_answer(
+    attempt_id: int,
+    body: AnswerSubmitRequest,
+    session: AsyncSession = Depends(get_session),
+    user: User = Depends(get_current_user),
+):
+    """
+    Submit an answer for the current exercise in an owned in-progress attempt.
+
+    Reveals the correct solution only in this response. Does not award XP.
+    """
+    return await lesson_engine.submit_answer(
+        session,
+        user,
+        attempt_id,
+        body.exercise_id,
+        body.position,
+        body.answer,
+    )

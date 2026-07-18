@@ -1,7 +1,7 @@
 """Lesson attempt and answer response schemas."""
 from datetime import datetime
-from typing import Optional, Literal
-from pydantic import BaseModel
+from typing import Any, Optional, Literal
+from pydantic import BaseModel, Field
 
 from app.schemas.course import PublicExercise
 
@@ -42,3 +42,29 @@ class LessonAttemptResponse(BaseModel):
     terminal_summary: Optional[TerminalSummary] = None
     
     model_config = {"from_attributes": True}
+
+
+class AnswerSubmitRequest(BaseModel):
+    """POST /api/lessons/{attempt_id}/answer request body."""
+
+    exercise_id: int
+    position: int = Field(..., ge=0)
+    answer: dict[str, Any]
+
+
+class AnswerResponse(BaseModel):
+    """POST /api/lessons/{attempt_id}/answer response body."""
+
+    attempt_id: int
+    exercise_id: int
+    position: int
+    is_correct: bool
+    correct_answer: dict[str, Any]
+    current_index: int
+    total_exercises: int
+    mistakes_count: int
+    hearts_remaining: int
+    max_hearts: int
+    next_heart_at: Optional[datetime] = None
+    lesson_status: Literal["in_progress", "completed", "failed"]
+    can_complete: bool
