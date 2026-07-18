@@ -358,6 +358,45 @@ ranking, complete merged-patch exercise validation, and active-attempt content e
 
 ---
 
+## Phase 6B — Timed-practice backend and forward migration
+
+**Model:** Sonnet
+
+**Load:**
+
+- `/docs/02_DATABASE_SCHEMA.md` — lesson_attempts table with new fields
+- Timed-practice rules from `/docs/04_GAMIFICATION_LOGIC.md`
+- Timed-practice sections from `/docs/03_API_SPEC.md`
+- Handoff
+
+**Prompt:**
+
+```text
+Perform LingoQuest Phase 6B: timed-practice backend and database migration.
+
+Follow the Common phase protocol. Generate and review a forward Alembic migration adding mode
+(standard/timed), expires_at (nullable DATETIME), and failure_reason (nullable TEXT) to
+lesson_attempts with appropriate check constraints.
+
+Implement POST /api/skills/{skill_id}/start-timed, timed-mode expiry enforcement in retrieve/
+answer/complete, fixed 20 XP award, no heart consumption in timed mode, time_expired failure,
+and practice-count-only updates. Use the injectable logical clock for expiry checks.
+
+Preserve existing standard-mode data and behavior. Add backend unit/integration tests.
+```
+
+**Exit checks:**
+
+- Migration applies to existing seeded database without data loss.
+- Standard mode attempts remain unaffected.
+- Timed attempts enforce 120-second expiry.
+- Expired attempts fail with time_expired and award zero XP.
+- Successful timed completion awards 20 XP and updates streak/practice without crowns/unlocks.
+- Wrong answers in timed mode do not consume hearts.
+- All backend tests pass including new timed-mode scenarios.
+
+---
+
 ## Phase 7A — Existing backend schema/seed conformance audit
 
 **Model:** Sonnet
@@ -715,7 +754,7 @@ selected/paired states. Do not calculate correctness or hearts locally.
 - Implemented lesson components only
 - `/frontend/design-system.md`
 - Relevant result/error response examples from API spec
-- Requirements R-03, R-04, R-05, R-14
+- Requirements R-03, R-04, R-05, R-16
 - Handoff
 
 **Prompt:**
@@ -739,6 +778,79 @@ alone.
 - Feedback/action remains reachable on mobile.
 - Results display only backend-returned values.
 - Motion does not block, delay, or duplicate requests.
+
+---
+
+## Phase 10D — Exercise audio and TTS frontend
+
+**Model:** Sonnet
+
+**Load:**
+
+- Audio requirements from `/docs/00_REQUIREMENTS_TRACEABILITY.md` R-13
+- Exercise schema with tts_text/tts_lang from `/docs/02_DATABASE_SCHEMA.md`
+- `/frontend/design-system.md`
+- Handoff
+
+**Prompt:**
+
+```text
+Perform LingoQuest Phase 10D: exercise audio playback and TTS.
+
+Follow the Common phase protocol. Implement accessible Play/Replay button that uses browser
+speechSynthesis API when tts_text/tts_lang are present, or plays audio_url when available. Prefer
+audio_url over TTS. Never autoplay.
+
+Show honest disabled/unavailable state when speechSynthesis is unsupported. Add component tests
+mocking speechSynthesis and verifying text/language selection. Update content-admin forms to expose
+optional tts_text and tts_lang fields. Do not use or copy Duolingo audio.
+```
+
+**Exit checks:**
+
+- Play/Replay buttons are keyboard accessible and labeled.
+- Browser speechSynthesis works with seeded tts_text/tts_lang.
+- audio_url takes precedence over TTS when present.
+- Unsupported speech shows clear unavailable state.
+- Component tests mock speechSynthesis and pass.
+- Content-admin can create/edit TTS fields.
+- No console errors during playback.
+
+---
+
+## Phase 10E — Timed-practice frontend flow
+
+**Model:** Sonnet
+
+**Load:**
+
+- Timed-practice requirements from `/docs/00_REQUIREMENTS_TRACEABILITY.md` R-14
+- Timed-mode API contracts from `/docs/03_API_SPEC.md`
+- `/frontend/design-system.md`
+- Handoff
+
+**Prompt:**
+
+```text
+Perform LingoQuest Phase 10E: timed-practice frontend flow.
+
+Follow the Common phase protocol. Add timed-practice start option on unlocked skill screen. Display
+countdown timer using backend remaining_seconds. Handle time-expired failure modal. Show timed
+completion results with fixed 20 XP. Support refresh/resume with timer recovery. Implement
+reduced-motion alternative for timer. Label as "Timed Practice."
+
+Preserve standard-mode lesson shell. Do not consume normal hearts display in timed mode.
+```
+
+**Exit checks:**
+
+- Timed start creates timed attempt with 120-second countdown.
+- Timer updates from backend remaining_seconds.
+- Expired attempts show time-expired failure modal.
+- Successful timed completion shows 20 XP result.
+- Refresh/resume recovers timer state.
+- Reduced-motion timer alternative works.
+- Standard mode remains unaffected.
 
 ---
 
@@ -884,7 +996,7 @@ Do not change backend behaviour or introduce one-off screen colours outside the 
 **Load:**
 
 - `/frontend/design-system.md`
-- Requirements R-13/R-14 and responsive bonus
+- Requirements R-13 through R-17 and responsive bonus
 - Real screenshots at mobile, tablet, and desktop
 - Handoff
 
@@ -894,9 +1006,10 @@ Do not change backend behaviour or introduce one-off screen colours outside the 
 Perform LingoQuest Phase 14 using Opus and frontend-design: final visual QA and polish.
 
 Follow the Common phase protocol. Run the real app and review screenshots/interactions for every
-required screen in light and dark themes at target viewports. Fix hierarchy, spacing, typography,
-depth consistency, pressed states, awkward empty/error/loading states, motion, overflow, and visual
-accessibility.
+required screen in light and dark themes at target viewports. Include audio Play/Replay states,
+timed-practice timer, XP/streak/achievement toasts, and original mascot-style flourishes. Fix
+hierarchy, spacing, typography, depth consistency, pressed states, awkward empty/error/loading
+states, motion, overflow, and visual accessibility.
 
 Preserve all tested functionality and API contracts. Do not add new features, dependencies, real
 Duolingo assets, or a wholesale redesign. This is a refinement pass.
@@ -904,7 +1017,7 @@ Duolingo assets, or a wholesale redesign. This is a refinement pass.
 
 **Exit checks:**
 
-- Screenshot matrix is reviewed and recorded.
+- Screenshot matrix includes audio, timer, toasts, and mascot states.
 - Shared primitives remain consistent.
 - Required end-to-end gate remains green.
 - Production frontend build passes after polish.

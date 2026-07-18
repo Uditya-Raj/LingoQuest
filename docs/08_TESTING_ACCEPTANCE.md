@@ -219,6 +219,19 @@ Test every supported criteria type: streak days, total XP, completed skills, and
 For each, assert below-threshold, at-threshold, inactive definition, earned timestamp, and repeated
 evaluation. The same user/achievement pair must never be inserted twice.
 
+### U-TIMED — Timed practice
+
+| ID | Case | Expected result |
+|---|---|---|
+| U-TIMED-01 | Start timed for locked skill | Conflict; no attempt created. |
+| U-TIMED-02 | Start timed with zero hearts | Succeeds; hearts not checked. |
+| U-TIMED-03 | Wrong answer in timed mode | Mistake increments; hearts unchanged. |
+| U-TIMED-04 | Expiry during answer | Fails with `time_expired`; no XP. |
+| U-TIMED-05 | Expiry during complete | Conflicts; no XP/streak/crown. |
+| U-TIMED-06 | Successful timed completion | Awards fixed 20 XP; updates streak/practice; no crown. |
+| U-TIMED-07 | Timed completion with mistakes | Awards 20 XP (not reduced). |
+| U-TIMED-08 | Duplicate timed completion | Conflict; no second XP. |
+
 ---
 
 ## Backend integration-test matrix
@@ -249,14 +262,24 @@ state on failure. Check the standard error envelope from `/docs/03_API_SPEC.md`.
   leave index/hearts/mistakes unchanged.
 - Completed and failed attempts reject further answers with the documented conflict.
 
-### I-FAIL — Zero-heart failure
+### I-FAIL — Zero-heart and time-expired failure
 
-1. Arrange one heart and an in-progress attempt.
+**Standard-mode heart failure:**
+
+1. Arrange one heart and an in-progress standard-mode attempt.
 2. Submit a valid incorrect current answer.
-3. Assert the same response reports zero hearts and `failed` status.
+3. Assert the same response reports zero hearts, `failed` status, and `failure_reason=out_of_hearts`.
 4. Assert `completed_at` is stamped, `activity_date`/`xp_earned` remain null, and answers remain
    auditable.
 5. Assert complete/resume/answer conflict and no XP, streak, crown, unlock, or achievement changed.
+
+**Timed-mode expiry:**
+
+1. Create a timed attempt with injected clock.
+2. Advance clock beyond expires_at.
+3. Submit answer or attempt complete.
+4. Assert failure with `time_expired`, no XP/streak/crown.
+5. Assert wrong answers before expiry do not consume hearts.
 
 ### I-COMPLETE — Atomic completion and idempotency
 
@@ -457,6 +480,26 @@ roles/labels or explicit test IDs; do not locate elements by fragile generated c
 - Trigger a 404/409 validation/domain path and verify the standard message is presented.
 - Restore connectivity and verify retry recovers without duplicating a mutation.
 
+### E2E-07 — Audio playback
+
+1. Load an exercise with tts_text and tts_lang.
+2. Verify Play button is visible and keyboard accessible.
+3. Click Play and verify speechSynthesis invocation (mock or real).
+4. Verify Replay works after initial playback.
+5. Load an exercise with audio_url and verify it takes precedence.
+6. Verify unsupported/unavailable state shows honest message.
+
+### E2E-08 — Timed practice
+
+1. Start timed practice on an unlocked skill.
+2. Verify 120-second countdown displays and updates.
+3. Submit wrong answers and verify hearts remain unchanged.
+4. Complete successfully and verify fixed 20 XP result.
+5. Verify practice count incremented but no crown added.
+6. Advance clock past expiry during another timed attempt.
+7. Verify time-expired failure modal and zero XP.
+8. Refresh during timed attempt and verify timer recovers.
+
 ---
 
 ## Manual responsive, accessibility, and visual QA
@@ -537,9 +580,11 @@ handoff rather than changing this static matrix.
 | R-10 Leaderboard | Seed/ranking/update tests | Current user/rank inspected | Deterministic total-XP ranking reflects completions. |
 | R-11 Profile/achievements | Profile + achievement idempotency tests | Earned/locked states inspected | Stats and thresholds use persisted history. |
 | R-12 Content management | Admin create/edit/validation tests + E2E-05 | Valid/invalid form flows | Structured content is editable without breaking contracts. |
-| R-13 Honest placeholders | Link/button inventory | Click every visible action | Deferred items are labeled non-actions; no fake feature. |
-| R-14 Original polished UI | Frontend checks | Opus screenshot matrix and accessibility QA | Cohesive original 3D product with no copied brand asset. |
-| R-15 Delivery | Clean setup/build/test checks | Public repo + hosted smoke | README works; hosted app and persistent data work. |
+| R-13 Audio | Component tests + E2E-07 | Play/Replay/unavailable inspected | Browser TTS or audio_url works accessibly. |
+| R-14 Timed practice | Unit/integration timed tests + E2E-08 | Timer/expiry/fixed XP inspected | 120s enforced; 20 XP fixed; no hearts consumed. |
+| R-15 Honest placeholders | Link/button inventory | Click every visible action | Deferred items are labeled non-actions; no fake feature. |
+| R-16 Original polished UI | Frontend checks | Opus screenshot matrix and accessibility QA | Cohesive original 3D product with no copied brand asset. |
+| R-17 Delivery | Clean setup/build/test checks | Public repo + hosted smoke | README works; hosted app and persistent data work. |
 
 ---
 

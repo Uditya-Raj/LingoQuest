@@ -262,6 +262,8 @@ Every public exercise includes:
   "type": "multiple_choice",
   "prompt": "Hola",
   "audio_url": null,
+  "tts_text": "hola",
+  "tts_lang": "es-ES",
   "metadata": {
     "hint": "A common greeting"
   },
@@ -432,6 +434,9 @@ Start and retrieve endpoints use:
   "lesson_id": 3,
   "skill_title": "Food",
   "status": "in_progress",
+  "mode": "standard",
+  "expires_at": null,
+  "remaining_seconds": null,
   "resumed": false,
   "started_at": "2026-07-18T10:20:00Z",
   "completed_at": null,
@@ -480,13 +485,14 @@ For failed attempts:
   "outcome": "failed",
   "xp_earned": 0,
   "perfect": false,
+  "failure_reason": "out_of_hearts",
   "completed_at": "2026-07-18T10:26:00Z"
 }
 ```
 
 ### `POST /api/skills/{skill_id}/start`
 
-Starts or resumes an attempt. No request body is required.
+Starts or resumes a standard-mode attempt. No request body is required.
 
 Behaviour:
 
@@ -496,7 +502,7 @@ Behaviour:
 4. Return an existing in-progress attempt for this user/skill when present.
 5. Otherwise select the skill's lesson pool and a randomized set of 10 unique active exercises,
    stratified to include at least one of every required exercise type.
-6. Persist the exercise order before responding.
+6. Persist the exercise order with `mode = standard` and `expires_at = null` before responding.
 
 Responses:
 
@@ -509,6 +515,28 @@ Errors:
 - `409 SKILL_LOCKED`, details include the prerequisite skill.
 - `409 OUT_OF_HEARTS`, details include `next_heart_at`.
 - `409 INSUFFICIENT_EXERCISES` when the content pool cannot build a playable attempt.
+
+### `POST /api/skills/{skill_id}/start-timed`
+
+Starts a timed-practice attempt for an unlocked skill. No request body is required.
+
+Behaviour:
+
+1. Reject locked skills.
+2. Do not check hearts; timed practice does not consume normal hearts.
+3. Select 10 unique active exercises with all five required types.
+4. Set `mode = timed` and `expires_at = started_at + 120 seconds`.
+5. Return the attempt with `mode`, `expires_at`, and `remaining_seconds`.
+
+Responses:
+
+- `201 Created` with timed attempt response.
+
+Errors:
+
+- `404 SKILL_NOT_FOUND`
+- `409 SKILL_LOCKED`
+- `409 INSUFFICIENT_EXERCISES`
 
 ### `GET /api/lessons/{attempt_id}`
 
@@ -591,8 +619,13 @@ Errors:
 
 No request body.
 
-The service validates that the owned attempt is in progress, hearts are above zero, and every
-exercise has been answered. It then performs all gamification updates in one transaction.
+The service validates that the owned attempt is in progress and every exercise has been answered.
+For standard mode, hearts must be above zero. For timed mode, check expiry and fail with
+`time_expired` if expired. It then performs all gamification updates in one transaction.
+
+Standard-mode completion awards lesson-configured XP plus perfect bonus. Timed-mode completion
+awards fixed 20 XP regardless of mistakes. Both modes update streak and today XP. Standard mode
+adds crowns and can unlock skills. Timed mode increments practice count only.
 
 Response `200`:
 
@@ -1079,7 +1112,8 @@ clock dependency.
 | 404 | `LESSON_NOT_FOUND` | Admin target lesson does not exist |
 | 404 | `EXERCISE_NOT_FOUND` | Admin exercise does not exist |
 | 409 | `SKILL_LOCKED` | Prerequisite has not been satisfied |
-| 409 | `OUT_OF_HEARTS` | Learner cannot start/complete with zero hearts |
+| 409 | `OUT_OF_HEARTS` | Standard-mode learner cannot start/complete with zero hearts |
+| 409 | `TIME_EXPIRED` | Timed attempt expired before completion |
 | 409 | `INSUFFICIENT_EXERCISES` | Lesson pool cannot build a playable attempt |
 | 409 | `ATTEMPT_TERMINAL` | Answer submitted to completed/failed attempt |
 | 409 | `ANSWER_OUT_OF_ORDER` | Stale/wrong current exercise submitted |

@@ -131,6 +131,8 @@ The exact JSON shapes live in the “Public exercise contracts” section of
 
 ## Starting and resuming an attempt
 
+### Standard-mode start
+
 `lesson_engine.start_or_resume_skill()` runs inside a short transaction.
 
 Order of operations:
@@ -144,8 +146,22 @@ Order of operations:
 7. Otherwise choose the correct lesson pool.
 8. Select 10 unique active exercises using stratified randomization so all five required types
    appear at least once.
-9. Persist the attempt and ordered exercise IDs.
+9. Persist the attempt with `mode = standard`, `expires_at = null`, and ordered exercise IDs.
 10. Return public exercises with correct answers removed.
+
+### Timed-mode start
+
+`lesson_engine.start_timed_practice()` creates a timed challenge.
+
+Order of operations:
+
+1. Resolve the current user and requested skill inside the active course.
+2. Derive skill state; reject `locked`.
+3. Do not check hearts; timed practice does not consume normal hearts.
+4. Select 10 unique active exercises with all five required types.
+5. Set `mode = timed` and `expires_at = logical_now + 120 seconds`.
+6. Persist the attempt and ordered exercise IDs.
+7. Return public exercises with mode, expires_at, and remaining_seconds.
 
 Content requirements:
 
@@ -171,10 +187,11 @@ the surviving active attempt. Never leave two active attempts for the same user/
 
 1. Load the attempt scoped to the current user; unknown or foreign IDs return `404`.
 2. Require `status == in_progress`.
-3. Require submitted `position == attempt.current_index`.
-4. Require the exercise ID at `exercise_order[position]` to equal submitted `exercise_id`.
-5. Confirm no answer row already exists for this attempt/position or attempt/exercise.
-6. Validate the type-specific answer shape.
+3. For timed mode, check if `logical_now > expires_at`; if expired, fail with `time_expired`.
+4. Require submitted `position == attempt.current_index`.
+5. Require the exercise ID at `exercise_order[position]` to equal submitted `exercise_id`.
+6. Confirm no answer row already exists for this attempt/position or attempt/exercise.
+7. Validate the type-specific answer shape.
 
 Invalid/stale/duplicate requests stop before grading and before heart mutation.
 
@@ -182,16 +199,18 @@ Invalid/stale/duplicate requests stop before grading and before heart mutation.
 
 Within one transaction:
 
-1. Apply lazy heart regeneration so the displayed heart value is current.
+1. For standard mode, apply lazy heart regeneration so the displayed heart value is current.
 2. Grade the answer.
 3. Insert the immutable answer audit row with type and correct-answer snapshots.
 4. Increment `attempt.current_index` by one.
-5. If incorrect:
-   - increment `mistakes_count`;
-   - deduct exactly one heart;
+5. Increment `mistakes_count` if incorrect.
+6. For standard mode only:
+   - deduct exactly one heart if incorrect;
    - increment `hearts_lost`;
-   - if hearts reach zero, mark the attempt `failed` and set `completed_at`.
-6. Flush/commit before returning the response.
+   - if hearts reach zero, mark the attempt `failed` with `failure_reason = out_of_hearts` and
+     set `completed_at`.
+7. For timed mode, do not deduct hearts; mistakes are recorded but do not consume hearts.
+8. Flush/commit before returning the response.
 
 Correct and incorrect answers both advance to the next exercise. The assignment does not require
 mistake requeueing within the same attempt.
@@ -314,18 +333,33 @@ offers working gem refill, natural regeneration, and return to path.
 
 ## Lesson failure
 
-An attempt fails when a valid wrong answer reduces hearts to zero.
+Attempts fail in two ways:
 
-Within the answer transaction:
+### Standard-mode heart failure
+
+When a valid wrong answer reduces hearts to zero in standard mode:
 
 ```text
 status = failed
+failure_reason = out_of_hearts
 completed_at = clock.now_utc()
 activity_date = NULL
 xp_earned = NULL
 ```
 
-Rules:
+### Timed-mode expiry
+
+When logical_now exceeds expires_at during answer/complete:
+
+```text
+status = failed
+failure_reason = time_expired
+completed_at = clock.now_utc()
+activity_date = NULL
+xp_earned = NULL
+```
+
+Rules for both failure types:
 
 - Award no partial XP.
 - Do not update streak.
@@ -333,7 +367,7 @@ Rules:
 - Do not evaluate achievements.
 - Preserve answers and mistakes for audit/profile statistics where relevant.
 - Failed attempts cannot resume or complete.
-- Retry after refill/regeneration creates a new attempt.
+- Retry creates a new attempt.
 
 ---
 
@@ -342,6 +376,8 @@ Rules:
 XP is awarded only by `complete_attempt()`.
 
 ### Formula
+
+**Standard mode:**
 
 ```python
 base_xp = lesson.xp_reward
@@ -355,7 +391,13 @@ For the standard base reward of 10:
 - Normal completion: 10 XP.
 - Perfect completion: 15 XP.
 
-In the same transaction:
+**Timed mode:**
+
+```python
+xp_earned = 20  # Fixed reward regardless of mistakes
+```
+
+In the same transaction for both modes:
 
 ```text
 attempt.xp_earned = xp_earned
@@ -457,7 +499,9 @@ streak day, not merely whether a lesson succeeded.
 
 ## Crowns, practice count, and skill state
 
-On every successful completion:
+### Standard-mode completion
+
+On every successful standard-mode completion:
 
 ```python
 progress.crowns = min(progress.crowns + 1, skill.max_level)
@@ -465,12 +509,36 @@ progress.times_practiced += 1
 progress.last_practiced_at = completed_at
 ```
 
-Completed skills may be replayed:
+Completed skills may be replayed in standard mode:
 
 - XP and daily XP are still awarded.
 - Streak may update normally.
 - Practice count increments.
 - Crowns remain at `max_level`.
+
+### Timed-mode completion
+
+On every successful timed-mode completion:
+
+```python
+# Crowns do NOT increment
+progress.times_practiced += 1
+progress.last_practiced_at = completed_at
+```
+
+Timed practice awards:
+
+- Fixed 20 XP.
+- Streak update.
+- Today XP.
+- Eligible achievements.
+- Practice count increment.
+
+Timed practice does NOT:
+
+- Add crowns.
+- Unlock dependent skills.
+- Change skill public state from its pre-attempt value.
 
 ### Derived public state
 

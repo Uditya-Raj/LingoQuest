@@ -1,5 +1,5 @@
 """Logical clock abstraction for testable time-dependent behavior."""
-from datetime import datetime, timezone
+from datetime import datetime, timezone, date
 from typing import Protocol
 
 
@@ -9,6 +9,10 @@ class Clock(Protocol):
     def now(self) -> datetime:
         """Return current UTC datetime."""
         ...
+    
+    def logical_date(self) -> date:
+        """Return current logical game date."""
+        ...
 
 
 class RealClock:
@@ -17,6 +21,10 @@ class RealClock:
     def now(self) -> datetime:
         """Return current system time in UTC."""
         return datetime.now(timezone.utc)
+    
+    def logical_date(self) -> date:
+        """Return current system date."""
+        return datetime.now(timezone.utc).date()
 
 
 class DebugClock:
@@ -30,6 +38,10 @@ class DebugClock:
         if self._frozen_time is not None:
             return self._frozen_time
         return datetime.now(timezone.utc)
+    
+    def logical_date(self) -> date:
+        """Return logical date from frozen time or system time."""
+        return self.now().date()
     
     def set_time(self, dt: datetime) -> None:
         """Set frozen time for testing."""

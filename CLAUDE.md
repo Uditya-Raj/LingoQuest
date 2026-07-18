@@ -95,15 +95,24 @@ source documents.
 - **R-12 — Structured content management:** database-backed units, skills, lessons, and exercises;
   separate `/admin/content` browser/editor; create/edit all exercise contracts using shared
   validation; invalid content cannot report success; destructive deletion is not required.
-- **R-13 — Honest placeholders:** only speech/pronunciation, payment/subscription, extended social,
-  and additional-language features may be `Coming Soon`/`Demo Only`; placeholders are disabled or
-  informational and never hide a required feature.
-- **R-14 — Original polished 3D experience:** LingoQuest identity and original visual treatment;
+- **R-13 — Exercise audio:** browser Speech Synthesis TTS or original/licensed audio; Play/Replay
+  button; no autoplay; honest unavailable state; seeded across all five types; content-admin TTS
+  fields; never use Duolingo audio.
+- **R-14 — Timed practice:** real 120-second timed mode; backend expires_at enforcement; 10
+  exercises with all five types; wrong answers count as mistakes but do not consume hearts; expired
+  attempts award no XP; successful timed completion awards fixed 20 XP and updates streak/practice
+  without crowns/unlocks; timer display and time-expired modal; label as "Timed Practice."
+- **R-15 — Honest placeholders:** only speech recognition/pronunciation, payment/subscription,
+  extended social, and additional-language features may be `Coming Soon`/`Demo Only`; placeholders
+  are disabled or informational and never hide a required feature.
+- **R-16 — Original polished 3D experience:** LingoQuest identity and original visual treatment;
   no protected Duolingo assets or exact copy; shared tactile primitives; complete hover, pressed,
-  focus, disabled, loading, success, and error states; purposeful nonblocking motion.
-- **R-15 — Reviewable delivery:** eventual public repository, exact README setup/migrate/seed/run/
+  focus, disabled, loading, success, and error states; purposeful nonblocking motion; XP/streak/
+  achievement toasts; original mascot-style flourishes; lesson-complete, out-of-hearts, and
+  time-expired modals; animated correct/incorrect feedback with reduced-motion alternatives.
+- **R-17 — Reviewable delivery:** eventual public repository, exact README setup/migrate/seed/run/
   test/build instructions, architecture/schema/API decisions, clean tracked files, hosted seeded
-  demo, and fresh-clone verification. Deployment is currently deferred and R-15 must remain open
+  demo, and fresh-clone verification. Deployment is currently deferred and R-17 must remain open
   until the user authorizes and verifies that work.
 
 ### Committed bonuses after all MUST features pass
@@ -117,9 +126,11 @@ source documents.
 
 ### Deferred scope
 
-Do not implement production authentication, real speech scoring, payments/subscriptions, a friend
-graph/social feed, multiple complete courses, timed/legendary mode, or heavy WebGL/Three.js scenes
-unless the user explicitly expands scope after required and committed work is green.
+Do not implement production authentication, real speech recognition/pronunciation scoring (playback
+TTS is required), payments/subscriptions, a friend graph/social feed beyond the seeded leaderboard,
+multiple complete courses, legendary progression system (timed practice is required), or heavy
+WebGL/Three.js scenes unless the user explicitly expands scope after required and committed work is
+green.
 
 For exact acceptance criteria, follow `/docs/00_REQUIREMENTS_TRACEABILITY.md` and
 `/docs/08_TESTING_ACCEPTANCE.md`. Do not implement from this condensed checklist alone.
@@ -311,8 +322,9 @@ Examples that are forbidden:
 
 Allowed deferred features must be clearly presented as unavailable/coming later rather than as
 working actions. This applies only to the explicitly deferred scope in
-`/docs/00_REQUIREMENTS_TRACEABILITY.md`, such as pronunciation/speech, paid subscription, broader
-friends/social functionality, and extra languages.
+`/docs/00_REQUIREMENTS_TRACEABILITY.md`, such as speech recognition/pronunciation grading (playback
+TTS is required), paid subscription, broader friends/social functionality beyond the seeded
+leaderboard, and extra languages.
 
 Do not add optional scope while a MUST requirement is incomplete.
 
@@ -395,7 +407,7 @@ Deployment is currently **deferred**. Do not create hosting accounts, provider c
 public deployments, domains, secrets, or external resources unless the user explicitly requests
 deployment work.
 
-This deferral does not count R-15 as complete. When deployment becomes required, create/approve
+This deferral does not count R-17 as complete. When deployment becomes required, create/approve
 the deployment specification, follow the deployment phase, and verify persistent SQLite storage
 rather than claiming success on an ephemeral filesystem.
 

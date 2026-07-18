@@ -163,12 +163,16 @@ Every exercise must:
 - Use only option IDs present in its own options.
 - Use original LingoQuest copy.
 - Stay within the vocabulary/difficulty of its skill.
-- Be understandable without audio.
-- Use `audio_url = null` unless real original/licensed audio is later added.
+- Use `audio_url = null` unless real original/licensed audio is available.
+- Include at least three exercises per skill with `tts_text` and `tts_lang` (normally `es-ES`) for
+  browser Speech Synthesis playback.
+- Across all seeded exercises, include audio support (either audio_url or TTS) for all five
+  exercise types where pedagogically meaningful.
 - Include short optional `metadata.hint` and a `metadata.difficulty` value of 1–3.
 - Pass the same Pydantic validator used by content-admin create/edit.
 
-Do not show an audio button when `audio_url` is null.
+Show audio button when `audio_url` is present or when both `tts_text` and `tts_lang` are present.
+Use `audio_url` in preference to TTS when both are available.
 
 ### Multiple-choice example
 

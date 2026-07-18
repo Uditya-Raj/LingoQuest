@@ -5,7 +5,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.core.config import settings
 from app.core.errors import DomainError, domain_error_to_http_exception
-from app.routers import health
+from app.routers import health, course, lessons
 
 
 def create_app() -> FastAPI:
@@ -29,6 +29,8 @@ def create_app() -> FastAPI:
     
     # Register routers
     app.include_router(health.router, prefix=settings.api_prefix)
+    app.include_router(course.router, prefix=settings.api_prefix)
+    app.include_router(lessons.router, prefix=settings.api_prefix)
     
     # Exception handlers
     @app.exception_handler(DomainError)

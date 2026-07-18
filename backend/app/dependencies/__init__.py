@@ -1,1 +1,1 @@
-"""Dependency injection for routes."""
+"""Dependencies package."""

@@ -198,7 +198,9 @@ Canonical editable exercise content. Exercise JSON contracts are defined in
 | `order_index` | INTEGER | no | — | Stable fallback/display order |
 | `type` | TEXT | no | — | Required exercise type enum |
 | `prompt` | TEXT | no | — | Learner-facing prompt |
-| `audio_url` | TEXT | yes | NULL | Optional bonus audio only |
+| `audio_url` | TEXT | yes | NULL | Optional original/licensed audio |
+| `tts_text` | TEXT | yes | NULL | Text for browser Speech Synthesis when audio_url is null |
+| `tts_lang` | TEXT | yes | NULL | BCP 47 language code for TTS, normally `es-ES` |
 | `options` | JSON | yes | NULL | Type-specific options; null when the contract has none |
 | `correct_answer` | JSON | no | — | Never sent before submission |
 | `metadata` | JSON | yes | NULL | Validated hint/difficulty/locale data |
@@ -248,6 +250,9 @@ Persisted state machine for a learner playing a lesson.
 | `completed_at` | DATETIME | yes | NULL | Set for successful and failed terminal attempts |
 | `activity_date` | DATE | yes | NULL | Logical completion date; set only on success |
 | `status` | TEXT | no | `in_progress` | `in_progress`, `completed`, or `failed` |
+| `mode` | TEXT | no | `standard` | `standard` or `timed` |
+| `expires_at` | DATETIME | yes | NULL | UTC expiry for timed attempts; null for standard |
+| `failure_reason` | TEXT | yes | NULL | `out_of_hearts`, `time_expired`, or null |
 | `exercise_order` | JSON | no | — | Ordered unique list of exercise IDs chosen at start |
 | `current_index` | INTEGER | no | 0 | Next expected position; may equal list length |
 | `mistakes_count` | INTEGER | no | 0 | Number of incorrect submissions |
@@ -256,7 +261,9 @@ Persisted state machine for a learner playing a lesson.
 
 Constraints:
 
-- Named check restricting status values.
+- Named check restricting status values: `in_progress`, `completed`, `failed`.
+- Named check restricting mode values: `standard`, `timed`.
+- Named check restricting failure_reason values: `out_of_hearts`, `time_expired`, or NULL.
 - `CHECK(current_index >= 0)`
 - `CHECK(mistakes_count >= 0)`
 - `CHECK(hearts_lost >= 0)`
@@ -270,6 +277,10 @@ Service invariants:
 - `in_progress` implies `completed_at IS NULL`, `activity_date IS NULL`, and `xp_earned IS NULL`.
 - `completed` implies `completed_at`, `activity_date`, and `xp_earned` are non-null.
 - `failed` implies `completed_at` is non-null, `activity_date IS NULL`, and no XP was awarded.
+- `mode = standard` has `expires_at IS NULL`.
+- `mode = timed` has non-null `expires_at` set 120 seconds from `started_at`.
+- `failure_reason = out_of_hearts` requires `mode = standard`.
+- `failure_reason = time_expired` requires `mode = timed`.
 - Only an `in_progress` attempt with `current_index == len(exercise_order)` can complete.
 - Start/resume service returns an existing matching active attempt rather than creating a second
   active attempt for the same user and skill.

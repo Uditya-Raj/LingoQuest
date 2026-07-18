@@ -95,10 +95,10 @@ Do not create:
 - Client-side lesson advancement before a successful answer response.
 - Seed-only counters disconnected from persisted attempts.
 
-Only the deferred areas in the requirements may appear as placeholders: pronunciation/speech,
-payments/subscription, social features beyond the leaderboard, and additional languages. Label
-them `Coming Soon` or `Demo Only` and make them disabled or informational. Never hide a required
-feature behind a placeholder.
+Only the deferred areas in the requirements may appear as placeholders: speech recognition/
+pronunciation grading (playback TTS is required), payments/subscription, social features beyond
+the leaderboard, and additional languages. Label them `Coming Soon` or `Demo Only` and make them
+disabled or informational. Never hide a required feature behind a placeholder.
 
 ## Frontend model and skill routing
 
@@ -147,7 +147,7 @@ Exactly two project frontend skills exist:
 - Inspect browser console/network, keyboard behavior, loading/error states, reduced motion, and
   required viewports during frontend gates.
 - Record commands and concise results in the handoff. Never claim unrun verification.
-- Required features R-01–R-14 must be green before optional polish. R-15 remains open until
+- Required features R-01–R-16 must be green before optional polish. R-17 remains open until
   delivery/deployment is explicitly authorized and verified.
 
 ## Repository and external-action safety

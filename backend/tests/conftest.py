@@ -8,6 +8,8 @@ from sqlalchemy.engine import Engine
 
 from app.main import create_app
 from app.core.database import Base, get_session
+from app.seed.seed_data import seed_course_content, seed_achievements, seed_users_and_history
+from datetime import date, datetime, timezone
 
 
 @pytest.fixture
@@ -46,12 +48,60 @@ async def test_session():
 
 
 @pytest.fixture
+async def session(test_session):
+    """Alias for test_session."""
+    return test_session
+
+
+@pytest.fixture
+async def seeded_session(test_session):
+    """Create a test session with seeded data."""
+    # Seed everything
+    reference_date = date(2026, 7, 18)
+    reference_now = datetime.combine(reference_date, datetime.min.time()).replace(
+        tzinfo=timezone.utc
+    )
+    
+    entities = await seed_course_content(test_session)
+    achievements = await seed_achievements(test_session)
+    await seed_users_and_history(
+        test_session,
+        entities["course"],
+        entities["skills"],
+        entities["lessons"],
+        achievements,
+        reference_date,
+        reference_now,
+    )
+    await test_session.commit()
+    
+    return test_session
+
+
+@pytest.fixture
 async def test_client(test_session):
     """Create a test client with overridden database session."""
     app = create_app()
     
     async def override_get_session():
         yield test_session
+    
+    app.dependency_overrides[get_session] = override_get_session
+    
+    transport = ASGITransport(app=app)
+    async with AsyncClient(transport=transport, base_url="http://test") as client:
+        yield client
+    
+    app.dependency_overrides.clear()
+
+
+@pytest.fixture
+async def async_client(seeded_session):
+    """Create a test client with seeded data."""
+    app = create_app()
+    
+    async def override_get_session():
+        yield seeded_session
     
     app.dependency_overrides[get_session] = override_get_session
     

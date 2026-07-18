@@ -214,11 +214,54 @@ Acceptance criteria:
 - Destructive deletion is not required; omitting delete is preferable to deleting exercises
   already referenced by attempts.
 
-### R-13 — Honest placeholders for allowed features
+### R-13 — Exercise audio playback
+
+Exercises support audio playback using browser Speech Synthesis or original/licensed audio.
+
+Acceptance criteria:
+
+- Exercises with `tts_text` and `tts_lang` use browser `speechSynthesis` API.
+- Exercises with `audio_url` prefer that audio over TTS.
+- Never use or copy Duolingo audio assets.
+- Seed at least three TTS-enabled exercises per skill.
+- Across the complete seed, audio support appears for all five exercise types.
+- Audio starts only after pressing an accessible Play/Replay button; no autoplay.
+- Unsupported/unavailable browser speech shows an honest disabled state.
+- Component tests mock `speechSynthesis` and verify text/language selection.
+- Browser flows verify Play, Replay, keyboard access, and no console error.
+- Content-admin screens expose optional TTS text/language fields.
+
+### R-14 — Timed practice mode
+
+A real timed-practice mode challenges learners to complete exercises under time pressure.
+
+Acceptance criteria:
+
+- Attempt mode is `standard` or `timed`.
+- Timed practice lasts 120 seconds, controlled by backend `expires_at`.
+- Dedicated timed-start API under the selected skill.
+- Only unlocked skills may start timed practice.
+- Timed attempts contain 10 unique exercises with all five types.
+- Wrong answers count as mistakes but do not consume normal learner hearts.
+- Every valid answer still advances once.
+- Backend marks expired attempts as `failed` with `failure_reason=time_expired`.
+- Expired attempts award no XP, streak, crown, unlock, or achievement.
+- Successful timed completion awards fixed 20 XP.
+- Successful timed completion updates total XP, today XP, streak, and eligible achievements.
+- Practice count increments but no crown is added and no skill is unlocked.
+- Duplicate/concurrent completion cannot award timed rewards twice.
+- Retrieve, answer, and complete endpoints enforce expiry using backend logical clock.
+- Public response includes mode, expires_at, remaining_seconds, and failure_reason.
+- Backend unit/integration tests use injectable logical clock.
+- Frontend flows for timer warning, time-expired result, successful result, refresh recovery, and
+  reduced-motion/accessibility.
+- Label as "Timed Practice" unless a full legendary progression system is implemented.
+
+### R-15 — Honest placeholders for allowed features
 
 Only the assignment-approved areas may remain placeholders:
 
-- Real speech recognition and pronunciation grading.
+- Real speech recognition and pronunciation grading (playback TTS is not speech recognition).
 - In-app purchases or Super/subscription.
 - Friends and social features beyond the seeded leaderboard.
 - Additional languages beyond the seeded Spanish course.
@@ -230,7 +273,7 @@ Acceptance criteria:
 - No clickable control calls a `501` endpoint or appears to work and then fails.
 - Required features are never hidden behind a placeholder label.
 
-### R-14 — Original, polished language-learning experience
+### R-16 — Original, polished language-learning experience
 
 LingoPath should feel playful and tactile without copying protected Duolingo materials.
 
@@ -245,8 +288,12 @@ Acceptance criteria:
   consistently.
 - Motion supports feedback and navigation; it does not block interaction or make the interface
   feel slow.
+- XP/streak/achievement toasts are backed by real API responses.
+- Lesson-complete, out-of-hearts, and time-expired modals are functional and accessible.
+- Animated correct/incorrect feedback with reduced-motion alternatives.
+- Original mascot-style illustration/flourishes without copying Duolingo's owl.
 
-### R-15 — Complete submission delivery
+### R-17 — Complete submission delivery
 
 The project must be reviewable by someone who did not build it.
 
@@ -284,15 +331,15 @@ These are implemented only after all MUST requirements pass:
 
 ## Deferred/out-of-scope features
 
-- Real speech scoring.
+- Real speech recognition and pronunciation scoring (playback TTS is required, recognition is not).
 - Real payments or subscription entitlements.
-- Real friend graph or social feed.
+- Real friend graph or social feed beyond the seeded leaderboard.
 - Multiple complete language courses.
-- Timed/legendary mode.
+- Legendary progression system (timed practice without permanent legendary levels is required).
 - Heavy WebGL or Three.js scenes.
 - A production authentication system.
 
-Do not implement these until the MUST list and committed responsive-design pass are complete.
+Do not implement these until all MUST requirements are complete.
 
 ---
 
@@ -309,8 +356,10 @@ Do not implement these until the MUST list and committed responsive-design pass 
 | R-10 | API, seed data | Deterministic ranking and post-lesson rank update test |
 | R-11 | Gamification, seed data | Achievement idempotency and profile response test |
 | R-12 | API | Valid create/edit and invalid-contract rejection test |
-| R-13, R-14 | UI skills | Browser QA; no false action or copied brand asset |
-| R-15 | README, deployment | Fresh-clone setup check and hosted smoke test |
+| R-13 | Browser speech synthesis | TTS playback, optional audio_url, accessibility |
+| R-14 | Timed mode API/gamification | Expiry enforcement, 20 XP fixed award, no hearts |
+| R-15, R-16 | UI skills | Browser QA; no false action or copied brand asset |
+| R-17 | README, deployment | Fresh-clone setup check and hosted smoke test |
 
 ## Global definition of done
 
