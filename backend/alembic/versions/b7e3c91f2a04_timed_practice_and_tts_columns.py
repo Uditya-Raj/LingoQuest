@@ -10,6 +10,14 @@ Forward migration for Phase 6B:
 
 Existing attempts backfill to mode=standard. Existing failed standard attempts
 receive failure_reason=out_of_hearts when null (historical zero-heart failures).
+
+PRE-RELEASE MIGRATION REPAIR (Phase 7A correction):
+This revision previously used op.batch_alter_table(), which on SQLite rebuilds the
+table. With foreign keys enabled, dropping lesson_attempts CASCADE-deleted all
+exercise_answers. The implementation below uses native ALTER TABLE ADD COLUMN so
+a populated ca24 database can upgrade with zero data loss. Same revision ID and
+down_revision retained; repository is pre-release with no external production DBs.
+A later forward migration cannot restore answers already deleted by the old body.
 """
 from typing import Sequence, Union
 
@@ -24,37 +32,47 @@ depends_on: Union[str, Sequence[str], None] = None
 
 
 def upgrade() -> None:
-    with op.batch_alter_table("exercises", schema=None) as batch_op:
-        batch_op.add_column(sa.Column("tts_text", sa.Text(), nullable=True))
-        batch_op.add_column(sa.Column("tts_lang", sa.Text(), nullable=True))
+    conn = op.get_bind()
+    # Match application FK enforcement. Native ADD COLUMN does not rebuild tables,
+    # so ON DELETE CASCADE children are not wiped.
+    conn.execute(sa.text("PRAGMA foreign_keys=ON"))
 
-    with op.batch_alter_table("lesson_attempts", schema=None) as batch_op:
-        batch_op.add_column(
-            sa.Column(
-                "mode",
-                sa.String(),
-                nullable=False,
-                server_default="standard",
+    # Additive columns only — do not use batch_alter_table (table rebuild + CASCADE).
+    conn.execute(sa.text("ALTER TABLE exercises ADD COLUMN tts_text TEXT"))
+    conn.execute(sa.text("ALTER TABLE exercises ADD COLUMN tts_lang TEXT"))
+
+    conn.execute(
+        sa.text(
+            """
+            ALTER TABLE lesson_attempts
+            ADD COLUMN mode VARCHAR NOT NULL DEFAULT 'standard'
+            CONSTRAINT ck_lesson_attempts_mode_valid
+            CHECK (mode IN ('standard', 'timed'))
+            """
+        )
+    )
+    conn.execute(
+        sa.text("ALTER TABLE lesson_attempts ADD COLUMN expires_at DATETIME")
+    )
+    conn.execute(
+        sa.text(
+            """
+            ALTER TABLE lesson_attempts
+            ADD COLUMN failure_reason VARCHAR
+            CONSTRAINT ck_lesson_attempts_failure_reason_valid
+            CHECK (
+                failure_reason IS NULL
+                OR failure_reason IN ('out_of_hearts', 'time_expired')
             )
+            """
         )
-        batch_op.add_column(
-            sa.Column("expires_at", sa.DateTime(timezone=True), nullable=True)
-        )
-        batch_op.add_column(sa.Column("failure_reason", sa.String(), nullable=True))
-        batch_op.create_check_constraint(
-            "ck_lesson_attempts_mode_valid",
-            "mode IN ('standard', 'timed')",
-        )
-        batch_op.create_check_constraint(
-            "ck_lesson_attempts_failure_reason_valid",
-            "failure_reason IS NULL OR failure_reason IN ('out_of_hearts', 'time_expired')",
-        )
+    )
 
-    # Explicit backfill for safety on engines that do not apply server_default to rows.
-    op.execute(
+    # Explicit backfill for safety on engines that do not apply DEFAULT to rows.
+    conn.execute(
         sa.text("UPDATE lesson_attempts SET mode = 'standard' WHERE mode IS NULL")
     )
-    op.execute(
+    conn.execute(
         sa.text(
             """
             UPDATE lesson_attempts
@@ -68,13 +86,15 @@ def upgrade() -> None:
 
 
 def downgrade() -> None:
-    with op.batch_alter_table("lesson_attempts", schema=None) as batch_op:
-        batch_op.drop_constraint("ck_lesson_attempts_failure_reason_valid", type_="check")
-        batch_op.drop_constraint("ck_lesson_attempts_mode_valid", type_="check")
-        batch_op.drop_column("failure_reason")
-        batch_op.drop_column("expires_at")
-        batch_op.drop_column("mode")
+    conn = op.get_bind()
+    # SQLite DROP COLUMN rewrites the table; disable FKs so CASCADE cannot wipe
+    # exercise_answers during the rewrite.
+    conn.execute(sa.text("PRAGMA foreign_keys=OFF"))
 
-    with op.batch_alter_table("exercises", schema=None) as batch_op:
-        batch_op.drop_column("tts_lang")
-        batch_op.drop_column("tts_text")
+    conn.execute(sa.text("ALTER TABLE lesson_attempts DROP COLUMN failure_reason"))
+    conn.execute(sa.text("ALTER TABLE lesson_attempts DROP COLUMN expires_at"))
+    conn.execute(sa.text("ALTER TABLE lesson_attempts DROP COLUMN mode"))
+    conn.execute(sa.text("ALTER TABLE exercises DROP COLUMN tts_lang"))
+    conn.execute(sa.text("ALTER TABLE exercises DROP COLUMN tts_text"))
+
+    conn.execute(sa.text("PRAGMA foreign_keys=ON"))

@@ -20,6 +20,57 @@ class TestForeignKeyEnforcement:
         row = result.fetchone()
         assert row[0] == 1, "Foreign keys must be enabled"
 
+    @pytest.mark.asyncio
+    async def test_active_course_id_fk_rejects_orphan(self, test_session):
+        """users.active_course_id must reference an existing course."""
+        user = User(
+            username="orphan_course",
+            display_name="Orphan",
+            active_course_id=99999,
+        )
+        test_session.add(user)
+        with pytest.raises(IntegrityError):
+            await test_session.flush()
+
+    @pytest.mark.asyncio
+    async def test_active_course_id_set_null_on_course_delete(self, test_session):
+        """Deleting a course with no units SET NULLs users.active_course_id."""
+        course = Course(
+            language_code="fr",
+            from_language_code="en",
+            title="French",
+            icon="french-course",
+        )
+        test_session.add(course)
+        await test_session.flush()
+
+        user = User(
+            username="linked_course",
+            display_name="Linked",
+            active_course_id=course.id,
+        )
+        test_session.add(user)
+        await test_session.flush()
+
+        await test_session.delete(course)
+        await test_session.flush()
+        await test_session.refresh(user)
+        assert user.active_course_id is None
+
+    @pytest.mark.asyncio
+    async def test_leaderboard_index_exists(self, test_session):
+        """Deterministic leaderboard index is present on users."""
+        result = await test_session.execute(text("PRAGMA index_list(users)"))
+        names = {row[1] for row in result.fetchall()}
+        assert "ix_users_leaderboard" in names
+
+    @pytest.mark.asyncio
+    async def test_user_skill_progress_has_no_status_column(self, test_session):
+        """Public skill status must not be stored on user_skill_progress."""
+        result = await test_session.execute(text("PRAGMA table_info(user_skill_progress)"))
+        cols = {row[1] for row in result.fetchall()}
+        assert "status" not in cols
+
 
 class TestUserConstraints:
     """Test user table constraints."""

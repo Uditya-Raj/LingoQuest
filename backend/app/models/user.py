@@ -1,7 +1,16 @@
 """User domain models."""
 from datetime import date, datetime
 from typing import Optional
-from sqlalchemy import CheckConstraint, String, Integer, Boolean, DateTime, Date
+from sqlalchemy import (
+    CheckConstraint,
+    String,
+    Integer,
+    Boolean,
+    DateTime,
+    Date,
+    ForeignKey,
+    Index,
+)
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.sql import func
 
@@ -38,7 +47,9 @@ class User(Base):
     
     # Settings
     daily_goal_xp: Mapped[int] = mapped_column(Integer, nullable=False, default=20)
-    active_course_id: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
+    active_course_id: Mapped[Optional[int]] = mapped_column(
+        Integer, ForeignKey("courses.id", ondelete="SET NULL"), nullable=True
+    )
     
     # Authorization
     is_content_admin: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
@@ -52,6 +63,7 @@ class User(Base):
         CheckConstraint("hearts >= 0 AND hearts <= max_hearts", name="ck_users_hearts_valid"),
         CheckConstraint("gems >= 0", name="ck_users_gems_positive"),
         CheckConstraint("daily_goal_xp > 0", name="ck_users_daily_goal_positive"),
+        Index("ix_users_leaderboard", "total_xp", "username", "id"),
     )
     
     # Relationships

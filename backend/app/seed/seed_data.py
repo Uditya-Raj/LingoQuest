@@ -1,7 +1,7 @@
 """Deterministic seed data CLI and verification."""
 import argparse
 import sys
-from datetime import datetime, date, timedelta
+from datetime import datetime, date, timedelta, timezone
 from typing import Any
 from collections import Counter
 
@@ -745,18 +745,18 @@ async def main(args: argparse.Namespace) -> int:
             print("ERROR: --reset requires --yes confirmation")
             return 1
     
-    # Reference date
+    # Reference date (UTC — matches schema logical-clock / timestamp conventions)
     if args.reference_date:
         try:
             reference_date = date.fromisoformat(args.reference_date)
-            reference_now = datetime.combine(reference_date, datetime.min.time()).replace(
-                tzinfo=datetime.now().astimezone().tzinfo
+            reference_now = datetime.combine(
+                reference_date, datetime.min.time(), tzinfo=timezone.utc
             )
         except ValueError:
             print(f"ERROR: Invalid date format: {args.reference_date}")
             return 1
     else:
-        reference_now = datetime.now().astimezone()
+        reference_now = datetime.now(timezone.utc)
         reference_date = reference_now.date()
     
     print(f"Reference date: {reference_date}")

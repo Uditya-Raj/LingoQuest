@@ -44,7 +44,7 @@ class TestPhase6BMigration:
         with engine.connect() as conn:
             conn.execute(text("PRAGMA foreign_keys=ON"))
             rev = conn.execute(text("SELECT version_num FROM alembic_version")).scalar()
-            assert rev == "b7e3c91f2a04"
+            assert rev == "c8a1f4e2b9d0"
 
             cols = {
                 row[1]
@@ -57,6 +57,16 @@ class TestPhase6BMigration:
                 for row in conn.execute(text("PRAGMA table_info(exercises)")).fetchall()
             }
             assert {"tts_text", "tts_lang"} <= ex_cols
+
+            user_fks = conn.execute(text("PRAGMA foreign_key_list(users)")).fetchall()
+            assert any(
+                row[2] == "courses" and row[3] == "active_course_id" for row in user_fks
+            )
+
+            user_indexes = {
+                row[1] for row in conn.execute(text("PRAGMA index_list(users)")).fetchall()
+            }
+            assert "ix_users_leaderboard" in user_indexes
 
             fk = conn.execute(text("PRAGMA foreign_key_check")).fetchall()
             assert fk == []

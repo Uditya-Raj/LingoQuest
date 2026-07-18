@@ -38,13 +38,13 @@ when its exit checks in `/docs/06_IMPLEMENTATION_PHASES.md` pass.
 |---|---|
 | Product | LingoPath (repository: LingoQuest) |
 | Repository state | `INSPECTED` |
-| Current phase | Phase 6B — Timed-practice backend and forward migration |
+| Current phase | Phase 7A — Existing backend schema/seed conformance audit |
 | Current phase status | `VERIFIED` |
-| Next action | Phase 7A — Existing backend schema/seed conformance audit |
+| Next action | Phase 7B — Existing backend API/gamification conformance audit |
 | Recommended model | Claude Sonnet |
 | Required skill | None |
 | Last updated | 2026-07-18 |
-| Updated by | Phase 6B Sonnet audit |
+| Updated by | Phase 7A migration data-preservation correction |
 | Active blocker | None |
 
 ---
@@ -75,32 +75,34 @@ This table tracks whether the planning files are present, not whether the app is
 
 ## Implementation status
 
-Phase 1 scaffolding is complete. Backend and frontend foundations are verified through Phase 6.
-Phase 6B timed/TTS/migration is implemented with automated evidence; Sonnet audit pending.
+Phase 1 scaffolding is complete. Backend foundations through Phase 6B are verified. Phase 7A
+schema/seed conformance audit is verified (including migration data-preservation correction).
+Phase 7B must still formally close API/gamification conformance (do not treat Phase 5B as closed
+by 7A).
 
 | Area | Status | Evidence or remaining work |
 |---|---|---|
 | Repository scaffolding | `VERIFIED` | Backend and frontend folders created with complete structure. |
 | Environment examples and setup | `VERIFIED` | `.env.example` files present for both backend and frontend. Root `.gitignore` created. |
-| Database models | `VERIFIED` | All tables including Phase 6B mode/expires_at/failure_reason and tts columns. |
-| Alembic migrations | `VERIFIED` | Head `b7e3c91f2a04` (revises `ca24b65a41a3`). Empty + seeded + backfill upgrade tests pass; FK integrity confirmed. |
-| Deterministic seed/reset | `VERIFIED` | ≥3 TTS exercises/skill; all five types audio-capable; row counts unchanged; idempotent reseed. |
+| Database models | `VERIFIED` | Phase 7A: active_course_id FK + leaderboard index added; no stored skill status. |
+| Alembic migrations | `VERIFIED` | Head `c8a1f4e2b9d0`. `b7e3c91f2a04` repaired in-place (additive ADD COLUMN). Empty + populated ca24→head preserve 1,420 answers. |
+| Deterministic seed/reset | `VERIFIED` | Exact counts, TTS ≥3/skill, XP cache consistent, idempotent reseed; CLI UTC reference_now. |
 | Course/path API | `VERIFIED` | GET /api/course returns full path with derived skill states. |
 | Skill detail/start/resume API | `VERIFIED` | Standard start/resume unchanged; timed start added. |
 | Lesson retrieve API | `VERIFIED` | Timed retrieve returns remaining_seconds; expiry persists time_expired. |
 | Exercise answer validation | `VERIFIED` | Pure graders reused; timed wrong answers skip hearts. |
-| Lesson completion transaction | `VERIFIED` | Standard + timed (fixed 20 XP, practice-only) paths; rollback hook proof. |
+| Lesson completion transaction | `VERIFIED` | Standard + timed paths; rollback hook proof. Formal Phase 5B audit still open for 7B. |
 | Hearts loss, regeneration, and refill | `VERIFIED` | Standard still loses one heart; timed does not. |
-| XP, daily goal, and total consistency | `VERIFIED` | Timed fixed 20 XP helper; standard formula preserved. |
+| XP, daily goal, and total consistency | `VERIFIED` | Seed XP cache equals attempt sums. |
 | Streak clock logic | `VERIFIED` | Timed completion updates streak; timeout does not. |
 | Crowns and server-derived locks | `VERIFIED` | Timed completion does not add crowns/unlocks. |
 | Achievement evaluation | `VERIFIED` | Timed completion evaluates achievements. |
 | Profile API | `VERIFIED` | Unchanged Phase 6. |
-| Leaderboard API | `VERIFIED` | Unchanged Phase 6. |
+| Leaderboard API | `VERIFIED` | Ordering supported by `ix_users_leaderboard`. |
 | Content-management API | `VERIFIED` | Admin create/edit persists and validates tts_text/tts_lang. |
 | Debug logical clock | `VERIFIED` | Used for timed expiry boundary tests without sleep(). |
-| Timed practice backend | `VERIFIED` | start-timed, expiry, 20 XP, no hearts/crowns/unlocks; 27 Phase 6B tests pass. |
-| TTS columns / admin TTS fields | `VERIFIED` | Migration + seed + admin + public exercise fields; 16 TTS exercises. |
+| Timed practice backend | `VERIFIED` | Phase 6B VERIFIED. |
+| TTS columns / admin TTS fields | `VERIFIED` | 16 TTS exercises; all five types. |
 | Frontend API client/state foundation | `VERIFIED` | API client with error handling, health contracts, and Zustand store created. |
 | 3D design system and primitives | `NOT_STARTED` | Basic Tailwind setup complete, 3D primitives not yet implemented. |
 | Learning path UI | `NOT_STARTED` | Folder structure exists but no screens implemented. |
@@ -110,7 +112,7 @@ Phase 6B timed/TTS/migration is implemented with automated evidence; Sonnet audi
 | Content manager UI | `NOT_STARTED` | Not implemented. |
 | Responsive accessibility | `NOT_STARTED` | Not implemented. |
 | Dark mode bonus | `NOT_STARTED` | Zustand theme store created but no theme implementation. |
-| Automated test suite | `VERIFIED` | **179 passed** (152 prior + 27 Phase 6B). Full suite green; concurrent start race proven. |
+| Automated test suite | `VERIFIED` | **185 passed** (184 prior + 1 populated ca24→head preservation regression). |
 | Production builds | `VERIFIED` | Both frontend build and backend startup verified (prior phases). |
 | Deployment and persistent SQLite | `NOT_STARTED` | Deferred; deployment spec missing. |
 | README and submission evidence | `NOT_STARTED` | No `README.md` exists. |
@@ -121,34 +123,29 @@ Phase 6B timed/TTS/migration is implemented with automated evidence; Sonnet audi
 
 ### Phase
 
-Phase 6B — Timed-practice backend and forward migration
+Phase 7A — Existing backend schema/seed conformance audit (migration data-preservation correction)
 
 ### Objective
 
-Forward Alembic migration for timed-attempt + TTS columns; timed start/answer/complete/retrieve;
-seed TTS content; admin TTS validation; preserve standard-mode behavior.
+Correct `b7e3c91f2a04` so a populated pre-6B database upgrades to head with zero data loss;
+add regression coverage; re-verify schema/seed/migration gates.
 
 ### Allowed work
 
-- New Alembic revision (never edit initial migration)
-- Models/schemas for mode, expires_at, failure_reason, tts_text, tts_lang
-- Seed TTS (≥3 per skill, all five types across seed)
-- Admin create/edit TTS validation
-- POST /api/skills/{id}/start-timed
-- Timed expiry on retrieve/answer/complete
-- Fixed 20 XP timed completion without crowns/unlocks
-- Phase 6B tests
+- In-place repair of `b7e3c91f2a04` (pre-release exception; same revision ID)
+- Additive SQLite `ALTER TABLE ADD COLUMN` strategy
+- Mandatory populated ca24→head regression test
+- Schema/migration/seed/backend suite verification
+- Handoff update
 
 ### Exit evidence required
 
-- Migration applies to empty and existing seeded DBs — **passed (automated)**
-- Standard mode unaffected — **passed (full suite green)**
-- 120s timed expiry — **passed**
-- time_expired awards zero XP — **passed**
-- Successful timed: 20 XP, streak/practice, no crown/unlock — **passed**
-- Timed wrong answers do not consume hearts — **passed**
-- All backend tests pass — **178 passed**
-- Formal Sonnet audit — **pending** (keeps status IMPLEMENTED_UNVERIFIED)
+- Populated ca24 DB upgrades to head with all 1,420 answers preserved — **passed**
+- Empty DB upgrade to head — **passed**
+- Full backend suite — **185 passed**
+- No `create_all()` under `app/` — **passed**
+- Handoff records root cause, repair exception, recovery status — **passed**
+- Phase 5B formal API/gamification audit — **not closed here** (Phase 7B)
 
 ---
 
@@ -156,11 +153,11 @@ seed TTS content; admin TTS validation; preserve standard-mode behavior.
 
 | Date | Category | Command | Result | Notes |
 |---|---|---|---|---|
-| 2026-07-18 | Phase 6B focused (pre-audit) | `python -m pytest tests/test_phase6b_migration.py tests/test_phase6b_tts_seed.py tests/test_phase6b_timed_api.py -v` | **26 passed** | Migration, TTS seed/admin, timed matrix |
-| 2026-07-18 | Phase 6B audit | `python -m pytest tests/test_phase6b_*.py -v` | **27 passed** | All Phase 6B + new concurrent start race test |
-| 2026-07-18 | all backend | `python -m pytest tests/ -q` | **179 passed** | Prior 152 + 27 Phase 6B; no regressions |
-| 2026-07-18 | alembic | `python -m alembic upgrade head` | Rev: **b7e3c91f2a04** | Local `lingopath.db` upgraded ca24b65a41a3 → b7e3c91f2a04 |
-| 2026-07-18 | Phase 6 focused | `python -m pytest tests/test_phase6_api.py -v` | **21 passed** (within full suite) | Still green under Phase 6B |
+| 2026-07-18 | Phase 7A repro | Temp ca24 + 142/1420 seed → upgrade b7e3 (old body) | **answers 1420→0** | Bug confirmed; attempts/progress/XP survived |
+| 2026-07-18 | Phase 7A fix repro | Same path after additive repair | **answers 1420→1420** | attempts/progress/achievements/XP intact; mode=standard |
+| 2026-07-18 | Phase 7A focused | `python -m pytest tests/test_phase7a_data_preservation.py tests/test_phase6b_migration.py tests/test_phase7a_migration.py tests/test_schema.py -q` | **31 passed** | Includes mandatory 1,420-answer preservation test |
+| 2026-07-18 | all backend | `python -m pytest tests/ -q` | **185 passed** | +1 preservation regression vs prior 184 |
+| 2026-07-18 | create_all audit | ripgrep `create_all` under `backend/app/` | **No matches** | Runtime does not use create_all |
 
 ---
 
@@ -181,22 +178,37 @@ not sufficient evidence for its buttons, persistence, errors, or responsive beha
 
 | Item | Verified value |
 |---|---|
-| Database engine/path | SQLite at `./lingopath.db` |
-| Current Alembic revision | **b7e3c91f2a04** (head) — timed practice + TTS columns |
-| Prior revision | ca24b65a41a3 (initial schema) |
-| SQLite foreign keys enabled | Yes - PRAGMA foreign_key_check empty in migration tests |
+| Database engine/path | SQLite at `./lingopath.db` (backend cwd) |
+| Current Alembic revision | **c8a1f4e2b9d0** (head) |
+| Prior revisions | ca24b65a41a3 → b7e3c91f2a04 → c8a1f4e2b9d0 |
+| SQLite foreign keys enabled | Yes — connect pragma + PRAGMA foreign_key_check empty |
 | Seed command | `python -m app.seed.seed_data [--reference-date YYYY-MM-DD] [--reset --yes]` |
-| Seed rerun behavior | Updates safe content definitions (incl. TTS) without duplicating learner history |
-| Default learner | Maya (maya_demo) - content admin, 340 XP, 6-day streak, 4 hearts, rank 3 |
-| Expected row counts match `/docs/05_SEED_DATA.md` | YES - 60 exercises, 5 users, 142 attempts, 1,420 answers, 25 progress rows, 6 achievements |
-| TTS seed | ≥3 TTS exercises per skill (`tts_text` + `tts_lang=es-ES`); all five types represented across seed |
-| XP consistency | ALL USERS - Zero difference between stored total_xp and computed attempt XP |
-| Exercise distribution | ALL SKILLS - Exactly 12 exercises per skill with required type distribution |
-| Contract validation | Shared validators include TTS pair/blank/BCP-47 checks |
-| Foreign key integrity | Zero violations - PRAGMA foreign_key_check returns empty |
-| Active attempts | Zero - no in-progress seeded attempts |
-| Existing local data requiring preservation | Local DB upgraded forward without reset |
-| Attempt backfill | Existing attempts → `mode=standard`; failed standard → `failure_reason=out_of_hearts` |
+| Seed rerun behavior | Updates safe content definitions without duplicating learner history |
+| Default learner | Maya (maya_demo) — 340 XP, streak 6/11, hearts 4/5, gems 100, goal 20, rank 3, admin |
+| Expected row counts | YES — courses 1, units 3, skills 5, lessons 5, exercises 60, users 5, progress 25, achievements 6, attempts 142 completed / 0 active, answers 1,420 |
+| user_achievements | **22** (supported-threshold count from verification report) |
+| TTS seed | 16 TTS: Greetings 4, others 3 each; all five types; `tts_lang=es-ES` |
+| XP consistency | ALL USERS — stored total_xp equals completed-attempt XP sum |
+| Exercise distribution | ALL SKILLS — 12 each with required type mix |
+| Contract validation | Shared validators; 0 invalid contracts on seed |
+| Active attempts | Zero |
+| users.active_course_id FK | **Present** — `ON DELETE SET NULL` (Phase 7A) |
+| ix_users_leaderboard | **Present** — `(total_xp, username, id)` |
+| user_skill_progress.status | **Absent** (derived only) |
+| Runtime create_all() | Not used under `app/` |
+| Attempt backfill (6B) | Existing attempts → `mode=standard`; failed standard → `failure_reason=out_of_hearts` |
+| Local data preservation | **Local `lingopath.db` already lost answers** under the old b7e3 body (142 attempts, 0 answers). Not reset during this correction. Future upgrades need no reset. |
+
+### Compatibility impact
+
+| Item | Detail |
+|---|---|
+| Root cause | `b7e3c91f2a04` used `op.batch_alter_table("lesson_attempts")`, which on SQLite rebuilds the table. With FKs ON, dropping the old `lesson_attempts` CASCADE-deleted all `exercise_answers`. |
+| Exact correction | Same revision ID `b7e3c91f2a04` / down_revision `ca24b65a41a3`. Replaced batch rebuild with native `ALTER TABLE … ADD COLUMN` for `mode`, `expires_at`, `failure_reason`, `tts_text`, `tts_lang`, plus column CHECK constraints and backfill UPDATEs. Downgrade uses `DROP COLUMN` under `PRAGMA foreign_keys=OFF`. |
+| Pre-release exception | Repository is pre-release with no external production databases. In-place repair of an already-shipped revision ID is explicitly allowed here because a later forward migration cannot restore arbitrary answers already deleted. |
+| Before/after (temp populated ca24) | Before b7e3: attempts=142, answers=1420. After old body: answers=0. After repaired body → head: attempts=142, answers=1420, progress=25, user_achievements=22, XP sum unchanged, mode backfilled to `standard`. |
+| Phase 7A migration safety | `c8a1f4e2b9d0` still sets `PRAGMA foreign_keys=OFF` around users batch rebuild. |
+| Local `lingopath.db` recovery | Disposable seeded dev DB already wiped. Safe recovery (not run in this phase): from `backend/`, `python -m app.seed.seed_data --reset --yes --reference-date 2026-07-18`. Do not use this to “prove” preservation — use the temp-DB regression test. |
 
 ---
 
@@ -213,37 +225,14 @@ Fill the result and test reference after each endpoint group is verified.
 | All five answer shapes | **Verified** | `test_answer_grading.py` + `test_phase5a_api.py` |
 | Attempt ordering/idempotency/conflicts | **Verified** | Phase 5A API suite |
 | Timed answer/expiry | **Implemented** | `test_phase6b_timed_api.py` |
-| Completion transaction | **Implemented** | Phase 5B + Phase 6B timed completion |
+| Completion transaction | **Implemented** | Phase 5B + Phase 6B timed completion — formal 5B/7B audit still open |
 | Hearts status/refill | **Verified** | `test_phase6_api.py::TestHeartsAPI` |
 | User profile/settings | **Verified** | `test_phase6_api.py::TestProfileAPI` |
 | Leaderboard | **Verified** | `test_phase6_api.py::TestLeaderboardAPI` |
 | Achievements | **Verified** | `test_phase6_api.py::TestAchievementsAPI` |
 | Content management + TTS | **Implemented** | Phase 6 + `test_phase6b_tts_seed.py::TestAdminTTS` |
 | Debug clock safety | **Verified** | Absent when disabled; used for timed expiry |
-| Standard error envelope/status codes | **Extended** | Added `TIME_EXPIRED`; `SKILL_LOCKED` / `INSUFFICIENT_EXERCISES` codes on start paths |
-
-### Phase 6B endpoint / behavior evidence
-
-| Case | Result |
-|---|---|
-| Empty DB upgrade to head | Both migrations apply; FK check empty |
-| Seeded DB forward upgrade | Attempt rows preserved; mode=standard backfill |
-| Invalid mode/failure_reason | CHECK constraints reject |
-| Timed start 120s | remaining_seconds=120; expires_at set server-side |
-| Ten exercises / five types | Stratified selection |
-| Refresh | Expiry and order preserved; remaining_seconds decreases with clock |
-| Wrong timed answer | Mistakes++; hearts unchanged |
-| Wrong standard answer | Still loses one heart |
-| Expiry boundary (`now == expires_at`) | Still allows answer (uses strict `>`) |
-| After expiry answer/retrieve/complete | TIME_EXPIRED / failed + time_expired; no XP |
-| Timed complete | Exactly 20 XP; perfect_bonus=0; practice++; no crown/unlock |
-| Duplicate/concurrent complete | One award only |
-| Concurrent timed starts (separate sessions) | Service-level race cleanup keeps exactly one attempt |
-| Completion rollback hook | Late failure rolls back XP/practice/status |
-| Out-of-hearts failure_reason | Persisted as out_of_hearts |
-| Public TTS fields | Exposed; correct_answer still hidden |
-| TTS coverage | 16 TTS exercises: Skill 0=4, Skills 1-4=3 each; all 5 types present |
-| OpenAPI | `/api/skills/{skill_id}/start-timed` registered |
+| Standard error envelope/status codes | **Extended** | Added `TIME_EXPIRED`; `SKILL_LOCKED` / `INSUFFICIENT_EXERCISES` |
 
 ---
 
@@ -305,6 +294,9 @@ decisions or approved deviations discovered while implementing.
 | 2026-07-18 | Phase 6B: TTS both-or-neither + BCP 47 pattern | Reject blank text and invalid language tags | `seed/validators.py` |
 | 2026-07-18 | Phase 6B: Seed updates existing exercise definitions on reseed | Applies TTS without touching learner history | `seed/seed_data.py` |
 | 2026-07-18 | Phase 6B: Concurrent timed starts keep earliest attempt | Delete extra empty in_progress attempts for same user/skill | `lesson_engine.start_timed_practice` |
+| 2026-07-18 | Phase 7A: Forward migration `c8a1f4e2b9d0` with FK OFF around users rebuild | Spec requires active_course_id FK + leaderboard index; SQLite batch rebuild would CASCADE-wipe children if FKs stayed on | `c8a1f4e2b9d0_*.py`, `models/user.py` |
+| 2026-07-18 | Phase 7A: Seed CLI uses `timezone.utc` for reference_now | Schema requires UTC timestamps; CLI previously used local offset | `seed/seed_data.py` |
+| 2026-07-18 | Phase 7A correction: in-place repair of `b7e3c91f2a04` to additive ADD COLUMN | Pre-release only; batch rebuild CASCADE-wiped answers; later migration cannot restore deleted answers | `b7e3c91f2a04_*.py`, `test_phase7a_data_preservation.py` |
 
 If a decision changes an API, schema, gamification rule, acceptance criterion, or deployment
 contract, update the source specification in the same phase. This handoff is not a replacement
@@ -319,110 +311,89 @@ for correcting the source document.
 | Info | `/docs/09_DEPLOYMENT.md` not yet created | No impact until deployment phase | Create when Phase 15 starts | Open |
 | Info | Product name is LingoPath but repository is named LingoQuest | Cosmetic inconsistency | Intentional - LingoPath is the user-facing product name per requirements | Acknowledged |
 | Info | Phase 6B Sonnet audit completed | All migration/TTS/timed contracts verified | Phase 6B marked VERIFIED | Resolved 2026-07-18 |
-| Info | Phase 5B formal Sonnet audit not separately recorded | Completion path covered by Phase 5B + Phase 6/6B tests | Optional dedicated 5B audit before Phase 7 | Open |
-| Info | No DB unique constraint preventing dual in_progress attempts | Service-level race cleanup proven correct with separate-session test | Acceptable for SQLite demo; verified in audit | Resolved 2026-07-18 |
+| Info | Phase 5B formal Sonnet audit not separately recorded | Completion path covered by tests; **Phase 7B must close API/gamification conformance** | Phase 7B | Open |
+| Info | No DB unique constraint preventing dual in_progress attempts | Service-level race cleanup proven | Acceptable for SQLite demo | Resolved 2026-07-18 |
+| Info | Local `lingopath.db` still has 0 answers from historical wipe | Dev-only; does not block future upgrades | Optional `--reset --yes` recovery (not run in this phase) | Open (dev recovery) |
+| Resolved | Phase 6B migration wiped `exercise_answers` on populated upgrade | Blocked honest 7A VERIFIED | In-place additive repair + regression test | Resolved 2026-07-18 |
 
 ---
 
-## Phase 6B Audit findings
+## Phase 7A Audit findings
 
-### Migration audit (PASS)
-- ✓ Forward migration `b7e3c91f2a04` revises `ca24b65a41a3` without modifying initial migration
-- ✓ Empty and seeded databases upgrade safely to head
-- ✓ Existing attempt/history/progress data preserved
-- ✓ Existing attempts backfill to `mode=standard`
-- ✓ Historical failed standard attempts backfill `failure_reason=out_of_hearts`
-- ✓ Mode/expires_at/failure_reason types/defaults/nullability/checks match schema
-- ✓ TTS columns tts_text/tts_lang match schema
-- ✓ Invalid mode/failure_reason values rejected by CHECK constraints
-- ✓ Downgrade drops columns/constraints cleanly
-- ✓ SQLite foreign keys enabled; PRAGMA foreign_key_check empty
-- ✓ Runtime does not use create_all() (not found in app/)
+### Severity-ranked gaps (pre-fix)
 
-### TTS audit (PASS)
-- ✓ 16 TTS exercises: Skill 0=4, Skills 1-4=3 each (exceeds minimum 3 per skill)
-- ✓ All five exercise types represented across course with TTS
-- ✓ Spanish TTS text pedagogically appropriate; tts_lang=es-ES
-- ✓ TTS fields survive seed, API serialization, admin create, admin patch
-- ✓ Blank/mismatched/invalid TTS combinations rejected by validators
-- ✓ Seed rerun updates content definitions without duplicating rows or overwriting learner progress
-- ✓ Row counts, XP, progress, achievements unchanged (60 exercises, 5 users, 142 attempts, etc.)
-- ✓ Correct answers hidden in all public exercise responses
-- ✓ No Duolingo audio or assets added
+| Severity | Gap | Evidence | Resolution |
+|---|---|---|---|
+| HIGH | `users.active_course_id` lacked FK to `courses.id` ON DELETE SET NULL | Model `user.py`; migration `ca24b65a41a3`; `PRAGMA foreign_key_list(users)` empty | Forward migration `c8a1f4e2b9d0` + model FK |
+| HIGH | `b7e3c91f2a04` batch-alter wiped `exercise_answers` on populated ca24→upgrade | Repro: 1420→0 answers with FKs ON | In-place repair to native ADD COLUMN (pre-release exception) |
+| MEDIUM | Missing `ix_users_leaderboard` | Schema “Deterministic leaderboard ordering”; index list lacked name | Added in `c8a1f4e2b9d0` + model Index |
+| LOW | Seed CLI `reference_now` used local TZ | Seed report showed `+05:30` | CLI now uses `timezone.utc` |
 
-### Timed start audit (PASS)
-- ✓ Duration (120s) and expires_at set only by backend logical clock
-- ✓ Locked skills rejected
-- ✓ Attempt contains 10 unique exercises with all five types
-- ✓ Order and expiry persist before response
-- ✓ Refresh preserves expiry; remaining_seconds decreases with clock
-- ✓ Standard and timed active-attempt interaction follows API spec
-- ✓ Duplicate/concurrent starts handled by service-level race cleanup
+### Schema audit (PASS after fix)
 
-### Concurrency audit (PASS)
-- ✓ Service-level race cleanup proven correct with truly separate sessions test
-- ✓ Concurrent timed starts result in exactly one surviving attempt per user-skill
-- ✓ Both concurrent requests return the same surviving attempt ID
-- ✓ Losing request correctly resumes the winner
-- ✓ SQLite transaction strategy serializes creation adequately for demo use
-- Note: No database unique constraint on (user_id, skill_id, status='in_progress')
-- Assessment: Service cleanup is sufficient for SQLite demo; would recommend partial unique index for production
+- ✓ No stored `user_skill_progress.status`
+- ✓ SQLite FKs enabled on every connection; `foreign_key_check` empty
+- ✓ users heart/XP/streak/gem/goal checks present
+- ✓ Course/unit/skill/lesson ordering uniqueness + indexes
+- ✓ Exercise-type checks; `audio_url` / `tts_text` / `tts_lang`
+- ✓ Attempt status/mode/expires_at/failure_reason checks
+- ✓ Answer position/exercise uniqueness + type checks
+- ✓ user_skill_progress uniqueness + crown/practice checks
+- ✓ Achievement criteria + user-award uniqueness
+- ✓ Required CASCADE/RESTRICT policies (including active_course SET NULL)
+- ✓ Leaderboard index present; active-attempt indexes present
+- ✓ Runtime does not depend on `create_all()` under `app/`
 
-### Timed answer/expiry audit (PASS)
-- ✓ Retrieve/answer/complete enforce backend expiry
-- ✓ Expiry boundary uses `logical_now > expires_at` (strict greater-than; equality still playable)
-- ✓ Expiry atomically produces status=failed, failure_reason=time_expired
-- ✓ Timeout awards no XP, streak, crown, practice, unlock, or achievement
-- ✓ Timed wrong answers increment mistakes but never deduct hearts
-- ✓ Standard wrong answers still deduct one heart; out_of_hearts persisted correctly
-- ✓ Invalid/duplicate/stale/concurrent answers mutate at most once
-- ✓ All five existing pure graders reused (no duplication)
+### Migration audit (PASS after data-preservation correction)
 
-### Timed completion audit (PASS)
-- ✓ Successful timed completion awards exactly 20 XP with no perfect bonus
-- ✓ Total XP, today XP, streak, practice count, eligible achievements update once
-- ✓ Timed completion does not add crowns or unlock skills
-- ✓ Early/expired/failed/duplicate/concurrent completion cannot award effects
-- ✓ Injected late failure rolls back every effect (rollback hook test)
-- ✓ XP cache equals completed-attempt XP sums
+- ✓ Initial `ca24b65a41a3` intent unchanged
+- ✓ `b7e3c91f2a04` repaired in-place (same ID); additive columns; no lesson_attempts rebuild
+- ✓ Empty temp DB upgrades base→head to `c8a1f4e2b9d0`
+- ✓ Populated ca24 (142 attempts / 1,420 answers) upgrades to head with all answers preserved
+- ✓ Pre-6B attempts backfill `mode=standard`
+- ✓ Pre-7A DB upgrades b7e3→c8a1; orphans cleared; child rows preserved when FK OFF
+- ✓ Alembic current equals head
+- ✓ No reset required for future populated upgrades
+- ✓ Local developer DB not reset during correction (already missing answers)
 
-### Clock and API audit (PASS)
-- ✓ Services use injected logical clock; no sleep() or wall-clock time in domain functions
-- ✓ remaining_seconds server-derived, nonnegative, consistent after refresh
-- ✓ Debug-clock tests prove before/exactly-at/after-expiry behavior
-- ✓ Public schemas include mode, expires_at, remaining_seconds, tts_text, tts_lang
-- ✓ OpenAPI includes `/api/skills/{skill_id}/start-timed`
-- ✓ Standard attempts backward-compatible
-- ✓ All errors use standard envelope and documented status codes
+### Seed audit (PASS)
+
+- ✓ Exact clean-seed counts (user_achievements=22 supported)
+- ✓ Five progress rows/user; 12 exercises/skill; type distribution
+- ✓ Shared contract validation; ≥3 TTS/skill; all five types TTS-capable
+- ✓ Maya profile/path/heart/goal/streak; rank 3; XP cache consistent
+- ✓ Zero active/failed seeded attempts
+- ✓ Idempotent second seed; reset remains `--reset --yes` + non-production
 
 ### Test coverage
-- 27 Phase 6B tests pass (4 migration, 6 TTS/seed/admin, 16 timed API, 1 concurrent start race)
-- Full backend suite: 179 tests pass (152 prior + 27 Phase 6B)
-- No regressions
+
+- Schema FK/index/status-column tests
+- Phase 6B / 7A migration tests
+- **Mandatory** `test_phase7a_data_preservation.py` (142/1420 ca24→head)
+- Full suite: **185 passed**
+
+---
 
 ## Files changed in the latest phase
 
-Phase 6B audit and concurrent-start verification:
+Phase 7A migration data-preservation correction:
 
 | File | Change | Reason |
 |---|---|---|
-| `backend/alembic/versions/b7e3c91f2a04_timed_practice_and_tts_columns.py` | Created | Forward migration |
-| `backend/app/models/course.py` | Updated | tts_text / tts_lang |
-| `backend/app/models/progress.py` | Updated | mode / expires_at / failure_reason + checks |
-| `backend/app/services/lesson_engine.py` | Updated | Timed start/expiry/answer/complete; TTS in public exercises |
-| `backend/app/routers/lessons.py` | Updated | POST start-timed |
-| `backend/app/services/xp.py` | Updated | calculate_timed_xp |
-| `backend/app/services/skill_progress.py` | Updated | apply_timed_practice_update |
-| `backend/app/services/content_admin.py` | Updated | Persist/validate TTS |
-| `backend/app/schemas/admin.py` | Updated | TTS fields on admin contracts |
-| `backend/app/seed/validators.py` | Updated | TTS validation |
-| `backend/app/seed/content.py` | Updated | ≥3 TTS exercises per skill |
-| `backend/app/seed/seed_data.py` | Updated | Create/update TTS; reseed-safe content updates |
-| `backend/tests/test_phase6b_migration.py` | Created (Phase 6B impl) | Migration upgrade/constraint tests |
-| `backend/tests/test_phase6b_tts_seed.py` | Created (Phase 6B impl) | Seed/TTS/admin tests |
-| `backend/tests/test_phase6b_timed_api.py` | Created (Phase 6B impl) | Timed integration matrix |
-| `backend/tests/test_phase6b_concurrent_starts.py` | Created (Phase 6B audit) | Concurrent timed-start race proof with separate sessions |
-| `docs/07_HANDOFF_CURRENT_STATE.md` | Updated (Phase 6B audit) | Phase 6B VERIFIED with complete audit findings |
+| `backend/alembic/versions/b7e3c91f2a04_timed_practice_and_tts_columns.py` | Replaced batch_alter rebuild with native ADD COLUMN + CHECKs | Stop CASCADE wipe of exercise_answers |
+| `backend/tests/test_phase7a_data_preservation.py` | Created | Mandatory populated ca24→head regression |
+| `docs/07_HANDOFF_CURRENT_STATE.md` | Updated | Root cause, repair exception, evidence, recovery |
+
+Prior Phase 7A schema/seed work (still in tree):
+
+| File | Change | Reason |
+|---|---|---|
+| `backend/app/models/user.py` | Added `active_course_id` FK + `ix_users_leaderboard` | Spec conformance |
+| `backend/alembic/versions/c8a1f4e2b9d0_add_users_active_course_fk_and_leaderboard_index.py` | Created | Forward migration with FK-off batch rebuild |
+| `backend/app/seed/seed_data.py` | UTC `reference_now` | Seed timestamp conformance |
+| `backend/tests/test_schema.py` | FK/index/no-status tests | Acceptance evidence |
+| `backend/tests/test_phase6b_migration.py` | Head rev + FK/index asserts | Head moved to c8a1 |
+| `backend/tests/test_phase7a_migration.py` | Created | Upgrade-from-6B preservation |
 
 ---
 
@@ -432,35 +403,39 @@ Phase 6B audit and concurrent-start verification:
 |---|---|
 | Current branch | `main` |
 | Pre-existing unrelated edits | Preserved |
-| Files that overlap planned phase work | Phase 6B backend/docs only |
+| Files that overlap planned phase work | Phase 7A migration/tests/docs only |
+| Developer local DB | **Not reset**; still 142 attempts / 0 answers from historical wipe |
 
 ---
 
 ## Exact next request for Cursor
 
-Phase 6B is VERIFIED. Use this request next:
+Phase 7A is VERIFIED. Use this request next:
 
 ```text
-Perform LingoQuest Phase 7A: existing backend schema/seed conformance audit.
+Perform LingoQuest Phase 7B: backend API and gamification conformance.
 
 Read:
 1. .cursor/rules/project-rules.mdc
 2. /CLAUDE.md
 3. /docs/07_HANDOFF_CURRENT_STATE.md
-4. Phase 7A from /docs/06_IMPLEMENTATION_PHASES.md
-5. Requirements R-03, R-08, R-09, R-10, R-11, R-12
-6. /docs/02_DATABASE_SCHEMA.md
-7. /docs/05_SEED_DATA.md
-8. Relevant sections from /docs/08_TESTING_ACCEPTANCE.md
+4. Phase 7B from /docs/06_IMPLEMENTATION_PHASES.md
+5. Requirements R-01 through R-12
+6. Relevant endpoint headings from /docs/03_API_SPEC.md
+7. /docs/04_GAMIFICATION_LOGIC.md
+8. Relevant /docs/08_TESTING_ACCEPTANCE.md API/gamification sections
 
-Compare actual models, migrations, indexes, constraints, seed content, and seeded history against
-specifications. Run migration/seed verification. Produce severity-ranked gap list with file evidence.
+First audit actual routes, schemas, services, ownership, transactions, time dependency, errors,
+and OpenAPI against the specs. Identify exact mismatches. Then fix only required backend gaps,
+keeping routers thin and preserving working code.
 
-Fix only schema/seed gaps required for conformance using forward migrations. Do not redesign working
-APIs or frontend.
+Pay special attention to attempt refresh/resume, answer order/duplicates, zero-heart failure,
+completion idempotency, daily activity_date, derived skill state, and admin content validation.
 
-Update the handoff with audit findings and set the next phase to 7B or frontend work depending on
-outcome.
+Explicitly close the previously open Phase 5B formal API/gamification conformance audit as part
+of 7B. Do not start frontend work.
+
+Update /docs/07_HANDOFF_CURRENT_STATE.md and stop after Phase 7B.
 ```
 
 ---
