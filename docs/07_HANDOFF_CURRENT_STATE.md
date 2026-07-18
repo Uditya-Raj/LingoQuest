@@ -36,15 +36,15 @@ when its exit checks in `/docs/06_IMPLEMENTATION_PHASES.md` pass.
 
 | Field | Current value |
 |---|---|
-| Product | LingoQuest (API title); historical docs may still say LingoPath |
+| Product | LingoQuest |
 | Repository state | `INSPECTED` |
-| Current phase | Phase 7C — Backend end-to-end acceptance gate |
+| Current phase | Phase 8A — Frontend API foundation |
 | Current phase status | `VERIFIED` |
-| Next action | Phase 8A — Frontend API foundation |
-| Recommended model | Claude Sonnet |
-| Required skill | None |
+| Next action | Phase 8B — UX blueprint |
+| Recommended model | Claude Opus |
+| Required skill | `ui-ux-pro-max` |
 | Last updated | 2026-07-18 |
-| Updated by | Phase 7C backend HTTP acceptance gate |
+| Updated by | Phase 8A frontend API foundation |
 | Active blocker | None |
 
 ---
@@ -78,12 +78,13 @@ This table tracks whether the planning files are present, not whether the app is
 Phase 1 scaffolding is complete. Backend foundations through Phase 6B are verified. Phase 7A
 schema/seed conformance audit is verified (including migration data-preservation correction).
 Phase 7B API/gamification conformance audit is verified. Phase 5B completion audit formally closed.
-Phase 7C backend end-to-end HTTP acceptance gate is verified.
+Phase 7C backend end-to-end HTTP acceptance gate is verified. Phase 8A frontend API foundation is
+verified.
 
 | Area | Status | Evidence or remaining work |
 |---|---|---|
 | Repository scaffolding | `VERIFIED` | Backend and frontend folders created with complete structure. |
-| Environment examples and setup | `VERIFIED` | `.env.example` files present for both backend and frontend. Root `.gitignore` created. |
+| Environment examples and setup | `VERIFIED` | Frontend uses `NEXT_PUBLIC_API_BASE_URL` (normalized in `lib/config.ts`). |
 | Database models | `VERIFIED` | Phase 7A: active_course_id FK + leaderboard index added; no stored skill status. |
 | Alembic migrations | `VERIFIED` | Head `c8a1f4e2b9d0`. `b7e3c91f2a04` repaired in-place (additive ADD COLUMN). Empty + populated ca24→head preserve 1,420 answers. |
 | Deterministic seed/reset | `VERIFIED` | Exact counts, TTS ≥3/skill, XP cache consistent, idempotent reseed; CLI UTC reference_now. |
@@ -103,17 +104,17 @@ Phase 7C backend end-to-end HTTP acceptance gate is verified.
 | Debug logical clock | `VERIFIED` | Used for timed expiry boundary tests without sleep(). |
 | Timed practice backend | `VERIFIED` | Phase 6B VERIFIED. |
 | TTS columns / admin TTS fields | `VERIFIED` | 16 TTS exercises; all five types. |
-| Frontend API client/state foundation | `VERIFIED` | API client with error handling, health contracts, and Zustand store created. |
+| Frontend API client/state foundation | `VERIFIED` | Phase 8A: typed contracts, HTTP client, wrappers, session store, Vitest. |
 | 3D design system and primitives | `NOT_STARTED` | Basic Tailwind setup complete, 3D primitives not yet implemented. |
-| Learning path UI | `NOT_STARTED` | Folder structure exists but no screens implemented. |
-| Lesson player and five exercise UIs | `NOT_STARTED` | Not implemented. |
+| Learning path UI | `NOT_STARTED` | Placeholder route `/` only; no path UI. |
+| Lesson player and five exercise UIs | `NOT_STARTED` | Placeholder `/lesson/[attemptId]` only. |
 | Feedback/failure/completion UI | `NOT_STARTED` | Not implemented. |
-| Profile/leaderboard/settings UI | `NOT_STARTED` | Not implemented. |
-| Content manager UI | `NOT_STARTED` | Not implemented. |
+| Profile/leaderboard/settings UI | `NOT_STARTED` | Placeholder routes only. |
+| Content manager UI | `NOT_STARTED` | Placeholder `/admin/content` only. |
 | Responsive accessibility | `NOT_STARTED` | Not implemented. |
-| Dark mode bonus | `NOT_STARTED` | Zustand theme store created but no theme implementation. |
-| Automated test suite | `VERIFIED` | **198 passed** (185 prior + **13** Phase 7C HTTP acceptance tests). |
-| Production builds | `VERIFIED` | Both frontend build and backend startup verified (prior phases). |
+| Dark mode bonus | `NOT_STARTED` | UI theme preference store exists; no theme implementation. |
+| Automated test suite | `VERIFIED` | Backend **198 passed** (prior). Frontend Vitest **22 passed** (Phase 8A). |
+| Production builds | `VERIFIED` | Frontend `next build` passed (Phase 8A); backend startup prior. |
 | Deployment and persistent SQLite | `NOT_STARTED` | Deferred; deployment spec missing. |
 | README and submission evidence | `NOT_STARTED` | No `README.md` exists. |
 
@@ -123,33 +124,28 @@ Phase 7C backend end-to-end HTTP acceptance gate is verified.
 
 ### Phase
 
-Phase 7C — Backend end-to-end acceptance gate
+Phase 8A — Frontend API foundation
 
 ### Objective
 
-Prove the complete backend learning journey through real HTTP API calls against a fresh
-Alembic-migrated and seeded temporary SQLite database. Acceptance gate only — no feature work
-unless a genuine specification defect is exposed.
+Create the strict, tested frontend foundation: environment config, exact TypeScript API
+contracts, centralized HTTP client, endpoint wrappers, server-authoritative Zustand session
+cache, Vitest coverage, and safe App Router placeholders. No visual design or playable screens.
 
 ### Allowed work
 
-- Acceptance fixture: temp DB → Alembic head → real seed → ASGI HTTP (session-per-request)
-- End-to-end HTTP coverage for standard lesson, hearts/failure/refill, timed success/expiry,
-  profile/leaderboard/achievements, content admin, errors/ownership, concurrency, OpenAPI
-- Production code fixes only for genuine spec defects found by acceptance
-- Handoff update; stop (no frontend)
+- Env config (`NEXT_PUBLIC_API_BASE_URL`), contracts, client, wrappers, stores, tests
+- Minimal placeholder routes for architecture-required paths
+- Read-only backend smoke GETs; no lesson start/complete against the developer DB
+- Handoff update; stop (no Phase 8B visual work)
 
 ### Exit evidence required
 
-- Fresh migrate + seed counts / FK check / idempotent reseed — **passed**
-- Standard path→complete→refresh cross-endpoint consistency — **passed**
-- Zero-heart failure, refill, retry, lazy regen — **passed**
-- Timed success (20 XP, no crowns) + expiry boundary — **passed**
-- Profile/leaderboard/achievements + admin TTS/contracts — **passed**
-- Error envelope, ownership, concurrent complete/timed-start — **passed**
-- OpenAPI title “LingoQuest API”; no `correct_answer` on public schemas — **passed**
-- Developer `lingopath.db` untouched — **passed**
-- Full backend suite green — **198 passed**
+- Lint / typecheck / Vitest / production build — **passed**
+- Typed client parses standard error envelope — **passed**
+- Required routes render placeholders — **passed**
+- No `any` / `@ts-ignore` / scattered API base URLs / LingoPath in frontend — **passed**
+- Backend smoke field comparison — **passed** (no contract corrections needed)
 
 ---
 
@@ -157,13 +153,14 @@ unless a genuine specification defect is exposed.
 
 | Date | Category | Command | Result | Notes |
 |---|---|---|---|---|
+| 2026-07-18 | Phase 8A unit | `cd frontend; npm run test` | **22 passed** | client + session store |
+| 2026-07-18 | Phase 8A typecheck | `cd frontend; npm run typecheck` | **pass** | `tsc --noEmit` |
+| 2026-07-18 | Phase 8A lint | `cd frontend; npm run lint` | **pass** | No ESLint warnings or errors |
+| 2026-07-18 | Phase 8A build | `cd frontend; npm run build` | **pass** | Next.js 15.5.20; routes `/`, skill, lesson, profile, leaderboard, settings, admin/content |
+| 2026-07-18 | Phase 8A smoke | GET course/me/hearts/leaderboard/achievements on `127.0.0.1:8001` | **200** all | Current LingoQuest API; fields match TS contracts |
 | 2026-07-18 | Phase 7C focused | `python -m pytest tests/test_phase7c_acceptance.py -q` | **13 passed** | Fresh Alembic+seed HTTP acceptance |
 | 2026-07-18 | all backend | `python -m pytest tests/ -q` | **198 passed** | 185 prior + 13 Phase 7C |
 | 2026-07-18 | Alembic head | `python -m alembic heads` | **c8a1f4e2b9d0 (head)** | Unchanged |
-| 2026-07-18 | Dev DB safety | size/mtime before vs after 7C | **untouched** | 618496 bytes; mtime 2026-07-18T15:42:41Z |
-| 2026-07-18 | Phase 7A focused | `python -m pytest tests/test_phase7a_data_preservation.py tests/test_phase6b_migration.py tests/test_phase7a_migration.py tests/test_schema.py -q` | **31 passed** | Prior evidence |
-| 2026-07-18 | Phase 7B audit | Full API/gamification conformance review | **PASS** | Phase 5B formally closed |
-| 2026-07-18 | schema tests | `python -m pytest tests/test_schema.py -q` | **25 passed** | FK/index/constraint verification after 7B fix |
 
 ---
 
@@ -258,17 +255,17 @@ that skill. Do not substitute or reference invented skills.
 
 | Frontend area | Functional evidence | Visual evidence | Result |
 |---|---|---|---|
-| Shared API/error/session handling | — | Not applicable | Not verified |
+| Shared API/error/session handling | Typed client + ApiError + session store; Vitest 22 | Not applicable | **Verified** (Phase 8A) |
 | 3D primitives/design tokens | — | Required at target viewports | Not verified |
-| Learning path | — | Required at desktop/mobile | Not verified |
-| Lesson player | — | Required at desktop/mobile | Not verified |
-| Profile | — | Required | Not verified |
-| Leaderboard | — | Required | Not verified |
-| Settings/daily goal | — | Required | Not verified |
-| Content manager | — | Required | Not verified |
-| Empty/loading/error states | — | Required | Not verified |
+| Learning path | Placeholder `/` only | Required at desktop/mobile | Not verified |
+| Lesson player | Placeholder `/lesson/[attemptId]` | Required at desktop/mobile | Not verified |
+| Profile | Placeholder `/profile` | Required | Not verified |
+| Leaderboard | Placeholder `/leaderboard` | Required | Not verified |
+| Settings/daily goal | Placeholder `/settings` | Required | Not verified |
+| Content manager | Placeholder `/admin/content` | Required | Not verified |
+| Empty/loading/error states | Root loading/error/not-found only | Required | Partial scaffold |
 | Keyboard/focus/reduced motion | — | Required | Not verified |
-| Dark mode | — | Required only if implemented | Not verified |
+| Dark mode | UI store theme key only | Required only if implemented | Not verified |
 
 Visual quality must be evaluated from running screenshots, not inferred from component source.
 
@@ -316,7 +313,7 @@ for correcting the source document.
 | Severity | Issue | Impact | Owner/action | Status |
 |---|---|---|---|---|
 | Info | `/docs/09_DEPLOYMENT.md` not yet created | No impact until deployment phase | Create when Phase 15 starts | Open |
-| Info | Product name is LingoPath but repository is named LingoQuest | Cosmetic inconsistency | Intentional - LingoPath is the user-facing product name per requirements | Acknowledged |
+| Info | Stale uvicorn on :8000 may be Phase-1 health-only API | Local smoke/dev confusion | Restart current `app.main:app` on 8000 | Open |
 | Info | Phase 6B Sonnet audit completed | All migration/TTS/timed contracts verified | Phase 6B marked VERIFIED | Resolved 2026-07-18 |
 | Info | Phase 5B formal Sonnet audit not separately recorded | Completion path covered by tests; **Phase 7B closed API/gamification conformance** | Phase 7B | Resolved 2026-07-18 |
 | Info | No DB unique constraint preventing dual in_progress attempts | Service-level race cleanup proven | Acceptable for SQLite demo | Resolved 2026-07-18 |
@@ -496,48 +493,83 @@ for correcting the source document.
 
 ## Files changed in the latest phase
 
-Phase 7C backend HTTP acceptance gate:
+Phase 8A frontend API foundation:
 
 | File | Change | Reason |
 |---|---|---|
-| `backend/tests/test_phase7c_acceptance.py` | Created | Fresh Alembic+seed ASGI HTTP acceptance suite (13 tests) |
-| `docs/07_HANDOFF_CURRENT_STATE.md` | Updated | Phase 7C VERIFIED evidence and next phase |
+| `frontend/.env.example`, `frontend/.env` | Updated | `NEXT_PUBLIC_API_BASE_URL` (was `NEXT_PUBLIC_API_URL`) |
+| `frontend/lib/config.ts` | Created | Normalize/validate API base URL in one place |
+| `frontend/lib/constants.ts` | Created | `APP_NAME = LingoQuest` |
+| `frontend/lib/contracts/*` | Created/replaced | Exact TS contracts (common, exercises, course, lesson, hearts, user, leaderboard, achievements, admin, debug, health) |
+| `frontend/lib/api/client.ts` | Replaced | Typed fetch, ApiError envelope parsing, AbortSignal, no mutation retry |
+| `frontend/lib/api/{course,lessons,user,content,debug,health,index}.ts` | Created | Typed endpoint wrappers |
+| `frontend/stores/session-store.ts` | Created | In-memory server-authoritative cache (no local XP/heart arithmetic) |
+| `frontend/stores/ui-store.ts` | Updated | Persist key `lingoquest-ui`; theme only |
+| `frontend/app/**` | Updated/added | LingoQuest metadata; placeholder routes for skill/lesson/profile/leaderboard/settings/admin |
+| `frontend/package.json` | Updated | `lingoquest-frontend`; vitest scripts; vitest dep |
+| `frontend/vitest.config.ts`, `frontend/tests/**` | Created | Unit tests + exercise mapping type fixtures |
+| `docs/07_HANDOFF_CURRENT_STATE.md` | Updated | Phase 8A VERIFIED evidence and next phase |
 
-No production backend code was changed. Acceptance exposed no specification defects.
+No production backend code was changed.
 
 ---
 
-## Phase 7C acceptance evidence
+## Phase 8A evidence
 
-### Fresh-database boot
+### Scaffold mismatches corrected
 
-- Temp SQLite → `alembic upgrade head` → revision `c8a1f4e2b9d0`
-- Real seed with `--reference-date 2026-07-18`
-- Counts: attempts **142**, answers **1,420**, user_skill_progress **25**
-- `PRAGMA foreign_keys=ON`; `PRAGMA foreign_key_check` empty
-- Seed idempotent on reseed (counts unchanged)
-- Start/retrieve never expose `correct_answer`
+| Issue | Correction |
+|---|---|
+| Env var `NEXT_PUBLIC_API_URL` | Renamed to architecture/spec `NEXT_PUBLIC_API_BASE_URL` |
+| Incomplete ApiError / client | Full envelope parsing, status/code/message/details, AbortSignal |
+| Only health contracts | Full learner/admin/debug contracts |
+| Package/UI named LingoPath | Renamed to LingoQuest in user-facing frontend |
+| No Vitest | Added minimal Vitest + 22 tests |
 
-### Workflows verified (HTTP only)
+### API modules and wrappers
 
-1. Standard: course → skill → start → retrieve → all five types → complete → course/me/leaderboard/achievements refresh; duplicate complete 409; XP once (15 perfect); crown once
-2. Hearts: wrong answers → zero → failed/`out_of_hearts` → start blocked → refill → new attempt; lazy regen via injectable clock
-3. Timed: 120s start; wrong answer no heart loss; 20 XP; no crowns/unlocks; expiry at `expires_at+1s` with `TIME_EXPIRED`; equality boundary still playable
-4. Profile/leaderboard/achievements: seeded Maya; PATCH; invalid 422; post-completion today XP/rank
-5. Admin: tree; five types create; TTS valid/invalid; merged PATCH; active-attempt protection; answers in admin only
-6. Errors/ownership: 400/403/404/409; foreign attempt 404
-7. Concurrency: dual complete → one success; dual timed start → one active
-8. OpenAPI: title “LingoQuest API”; required paths; no public `correct_answer`; no LingoPath in OpenAPI/learner JSON
+- **Client:** `lib/api/client.ts` (`apiRequest` / `apiGet` / `apiPost` / `apiPatch`, `ApiError`)
+- **Course:** `getCourse`, `getSkill`
+- **Lessons:** `startLesson`, `startTimedPractice`, `getAttempt`, `submitAnswer`, `completeLesson`
+- **Learner:** `getHeartsStatus`, `refillHearts`, `getCurrentUser`, `updateCurrentUser`, `getLeaderboard`, `getAchievements`
+- **Admin:** `getContentTree`, `createExercise`, `updateExercise`
+- **Debug (separated):** `getDebugClock`, `advanceDebugClock`, `resetDebugClock`
+- **Health:** `getHealth`, `getReady`
 
-### Defects found
+### Quality search counts (frontend source)
 
-None. No production code corrections required.
+| Check | Count / result |
+|---|---|
+| `\bany\b` in lib/stores/tests/app | **0** |
+| `@ts-ignore` / `@ts-expect-error` | **0** |
+| Scattered hard-coded API base in components | **0** (localhost only in config error text, `.env.example`, Vitest setup/assertions) |
+| `LingoPath` / `lingopath` in frontend TS/TSX | **0** |
+| `correct_answer` on public exercise types | **Absent**; present only on admin contracts + answer response (reveal) |
+
+### Backend smoke (read-only)
+
+Port **8000** hosted a stale Phase-1 “LingoPath API” with only `/health` and `/ready`. Smoke ran against the **current** app on `127.0.0.1:8001` (OpenAPI title **LingoQuest API**, 17 paths) using the existing seeded `lingopath.db`. No lesson start/complete.
+
+| Endpoint | Status | Field match vs TS contracts |
+|---|---|---|
+| GET `/api/course` | 200 | learner/course/units/skill keys match |
+| GET `/api/user/me` | 200 | user/stats/achievements match |
+| GET `/api/hearts/status` | 200 | hearts/max/next/seconds/regen match |
+| GET `/api/leaderboard` | 200 | ranking_basis/entries/current_user match |
+| GET `/api/achievements` | 200 | criteria + earned fields match |
+
+### Contract mismatches
+
+None requiring a type or backend fix for the smoke endpoints.
+
+**Informational (backend frozen):** written API_SPEC health examples differ from live health (`status: "healthy"` without `service`; ready `database: "connected"`). Frontend health types match the live backend. Not changed in this phase.
 
 ### Remaining risks
 
-- Developer `lingopath.db` still historically wiped (0 answers) — optional `--reset --yes` recovery only; not used by acceptance
+- Stale uvicorn on port 8000 may confuse local frontend if `NEXT_PUBLIC_API_BASE_URL` points at it — restart current `app.main:app` on 8000 for day-to-day use
+- Developer DB historically wiped answers (recovered to 1420 in later sessions per prior notes) — smoke did not mutate
+- Visual/UX work still not started (Phase 8B+)
 - Deployment / R-17 still deferred
-- Frontend learning UI still `NOT_STARTED` (Phase 8+)
 
 ---
 
@@ -547,38 +579,41 @@ None. No production code corrections required.
 |---|---|
 | Current branch | `main` |
 | Pre-existing unrelated edits | Preserved |
-| Files changed this phase | `test_phase7c_acceptance.py`, handoff only |
-| Developer local DB | **Untouched** (size 618496; mtime unchanged through acceptance suite) |
+| Files changed this phase | Frontend API foundation + handoff (see table above) |
+| Backend production code | **Unchanged** |
+| Developer local DB | **Read-only smoke** (no start/complete) |
 
 ---
 
 ## Exact next request for Cursor
 
-Phase 7C is VERIFIED. Use this request next:
+Phase 8A is VERIFIED. Use this request next:
 
 ```text
-Perform LingoQuest Phase 8A: frontend API and routing foundation.
+Perform LingoQuest Phase 8B using Opus and the ui-ux-pro-max skill: create the frontend UX blueprint.
 
 Read:
 1. .cursor/rules/project-rules.mdc
 2. /CLAUDE.md
 3. /docs/07_HANDOFF_CURRENT_STATE.md
-4. Phase 8A from /docs/06_IMPLEMENTATION_PHASES.md
-5. /docs/01_ARCHITECTURE.md — frontend layout, state ownership, error architecture
-6. Relevant shared/error shapes from /docs/03_API_SPEC.md
+4. Phase 8B from /docs/06_IMPLEMENTATION_PHASES.md
+5. Requirements R-01 through R-15 and committed responsive bonus
+6. /docs/01_ARCHITECTURE.md — Frontend design/accessibility sections
 
-Implement environment-backed typed API client, ApiError, TypeScript contracts, routes,
-providers, loading/error/not-found boundaries, and UI-only Zustand store. Create no final
-screen design yet.
+Inspect the existing frontend and define the information hierarchy, responsive layouts,
+navigation, interaction/state matrix, accessibility requirements, and screen-to-screen journey
+for path, skill start, lesson, feedback, failure, results, profile, leaderboard, settings, and
+content admin.
 
-Do not store authoritative hearts, XP, streak, crowns, lock state, correct answers, or attempt
-progress in Zustand. The lesson route must be /lesson/[attemptId].
+Keep the experience original and branded LingoQuest. Do not copy real Duolingo assets or exact
+copy. Do not implement full screens yet. Persist the approved compact blueprint in
+/frontend/design-system.md so later chats do not re-decide it.
 
-Update /docs/07_HANDOFF_CURRENT_STATE.md and stop after Phase 8A.
+Update /docs/07_HANDOFF_CURRENT_STATE.md and stop after Phase 8B.
 ```
 
-**Recommended model:** Claude Sonnet  
-**Required skill:** None
+**Recommended model:** Claude Opus  
+**Required skill:** `ui-ux-pro-max`
 
 ---
 

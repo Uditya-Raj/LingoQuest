@@ -2,8 +2,8 @@ import type { Metadata } from 'next'
 import './globals.css'
 
 export const metadata: Metadata = {
-  title: 'LingoPath - Learn Languages',
-  description: 'Language learning application',
+  title: 'LingoQuest',
+  description: 'Original language learning with a tactile 3D experience',
 }
 
 export default function RootLayout({

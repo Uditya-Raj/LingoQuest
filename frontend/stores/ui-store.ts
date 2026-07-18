@@ -1,6 +1,8 @@
 /**
- * UI-only state store using Zustand
+ * UI-only preferences. Safe to persist.
+ * Never store authoritative hearts, XP, streak, crowns, or attempt progress here.
  */
+
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
 
@@ -16,7 +18,7 @@ export const useUIStore = create<UIState>()(
       setTheme: (theme) => set({ theme }),
     }),
     {
-      name: 'lingopath-ui',
-    }
-  )
+      name: 'lingoquest-ui',
+    },
+  ),
 )
