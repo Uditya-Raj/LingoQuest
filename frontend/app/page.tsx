@@ -1,19 +1,45 @@
-/**
- * Learning path placeholder — Phase 8A foundation only.
- * Full path UI begins in later frontend phases.
- */
+'use client'
+
+import { AppShell } from '@/components/layout/app-shell'
+import { LearnerSummaryPanel } from '@/components/layout/learner-summary-panel'
+import {
+  LearningPath,
+  LearningPathEmpty,
+  LearningPathError,
+  LearningPathSkeleton,
+} from '@/components/path/learning-path'
+import { useLearnerShellData } from '@/hooks/use-learner-shell-data'
+import { useSessionStore } from '@/stores/session-store'
+
 export default function HomePage() {
+  const { course, status, error, reload } = useLearnerShellData()
+  const learner = useSessionStore((s) => s.learner)
+
+  const rightPanel =
+    status === 'ready' && course !== null ? (
+      <LearnerSummaryPanel
+        learner={course.learner}
+        courseTitle={course.course.title}
+      />
+    ) : null
+
   return (
-    <main className="flex min-h-screen flex-col items-center justify-center p-8">
-      <div className="max-w-lg text-center">
-        <h1 className="mb-3 text-4xl font-bold text-primary">LingoQuest</h1>
-        <p className="text-lg text-gray-600">
-          Frontend API foundation is ready. Learning path UI comes next.
-        </p>
-        <p className="mt-6 text-sm text-gray-500">
-          Placeholder for route <code>/</code>
-        </p>
-      </div>
-    </main>
+    <AppShell
+      learner={learner ?? course?.learner ?? null}
+      learnerLoading={status === 'loading'}
+      rightPanel={rightPanel}
+    >
+      {status === 'loading' ? <LearningPathSkeleton /> : null}
+      {status === 'error' ? (
+        <LearningPathError
+          message={error?.message ?? 'Could not load your learning path.'}
+          onRetry={reload}
+        />
+      ) : null}
+      {status === 'empty' ? <LearningPathEmpty onRetry={reload} /> : null}
+      {status === 'ready' && course !== null ? (
+        <LearningPath course={course} />
+      ) : null}
+    </AppShell>
   )
 }

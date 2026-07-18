@@ -1,22 +1,36 @@
-/**
- * Skill detail placeholder — Phase 8A route boundary only.
- */
-export default async function SkillPage({
+'use client'
+
+import { use } from 'react'
+
+import { AppShell } from '@/components/layout/app-shell'
+import { SkillDetailView } from '@/components/skill/skill-detail'
+import { useSessionStore } from '@/stores/session-store'
+
+export default function SkillPage({
   params,
 }: {
   params: Promise<{ skillId: string }>
 }) {
-  const { skillId } = await params
+  const { skillId: skillIdRaw } = use(params)
+  const skillId = Number.parseInt(skillIdRaw, 10)
+  const learner = useSessionStore((s) => s.learner)
+
+  if (!Number.isFinite(skillId) || skillId <= 0) {
+    return (
+      <AppShell learner={learner} learnerLoading={false}>
+        <div className="mx-auto max-w-md py-12 text-center" role="alert">
+          <h1 className="text-lq-2xl font-extrabold">Skill not found</h1>
+          <p className="mt-2 text-lq-sm text-lq-text-secondary">
+            That skill link is invalid.
+          </p>
+        </div>
+      </AppShell>
+    )
+  }
 
   return (
-    <main className="flex min-h-screen flex-col items-center justify-center p-8">
-      <div className="max-w-lg text-center">
-        <h1 className="mb-3 text-2xl font-bold">Skill</h1>
-        <p className="text-gray-600">
-          Placeholder for skill <code>{skillId}</code>. Start/resume UI is not
-          implemented in Phase 8A.
-        </p>
-      </div>
-    </main>
+    <AppShell learner={learner} learnerLoading={learner === null}>
+      <SkillDetailView skillId={skillId} />
+    </AppShell>
   )
 }

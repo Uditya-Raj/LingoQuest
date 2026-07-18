@@ -250,6 +250,21 @@
   80% { transform: translateX(3px) translateY(var(--lq-depth-md)); }
 }
 
+@keyframes lq-available-pulse {
+  0%, 100% { transform: translateY(0); box-shadow: var(--lq-shadow-md); }
+  50% { transform: translateY(-2px); box-shadow: var(--lq-shadow-lg); }
+}
+
+.lq-available-pulse {
+  animation: lq-available-pulse 2.4s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .lq-available-pulse {
+    animation: none !important;
+  }
+}
+
 /* ── Utility classes for token consumption ── */
 @layer utilities {
   .text-lq-primary { color: var(--lq-text-primary); }

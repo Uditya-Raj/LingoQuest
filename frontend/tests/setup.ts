@@ -1,6 +1,6 @@
 import '@testing-library/jest-dom/vitest'
 import { cleanup } from '@testing-library/react'
-import { afterEach } from 'vitest'
+import { afterEach, vi } from 'vitest'
 
 process.env.NEXT_PUBLIC_API_BASE_URL = 'http://localhost:8000/api'
 
@@ -28,3 +28,5 @@ Object.defineProperty(window, 'matchMedia', {
   writable: true,
   value: (query: string) => new MockMatchMedia(query),
 })
+
+Element.prototype.scrollIntoView = vi.fn()

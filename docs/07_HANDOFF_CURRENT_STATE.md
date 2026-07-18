@@ -38,13 +38,13 @@ when its exit checks in `/docs/06_IMPLEMENTATION_PHASES.md` pass.
 |---|---|
 | Product | LingoQuest |
 | Repository state | `INSPECTED` |
-| Current phase | Phase 8C — 3D design system and primitives |
+| Current phase | Phase 9A — Learning-path functionality |
 | Current phase status | `VERIFIED` |
-| Next action | Phase 9A — Learning-path functionality |
-| Recommended model | Claude Sonnet |
-| Required skill | None |
+| Next action | Phase 9B — Learning-path visual composition |
+| Recommended model | Claude Opus |
+| Required skill | `frontend-design` |
 | Last updated | 2026-07-18 |
-| Updated by | Phase 8C 3D design system |
+| Updated by | Phase 9A functional responsive learning path |
 | Active blocker | None |
 
 ---
@@ -107,15 +107,15 @@ verified.
 | Frontend API client/state foundation | `VERIFIED` | Phase 8A: typed contracts, HTTP client, wrappers, session store, Vitest. |
 | UX and visual-system blueprint | `VERIFIED` | Phase 8B: `/docs/10_UX_BLUEPRINT.md` — complete 17-section visual direction. |
 | 3D design system and primitives | `VERIFIED` | Phase 8C: complete token system, 15 primitives, theme system, Quest mascot, 67 tests. |
-| Learning path UI | `NOT_STARTED` | Placeholder route `/` only; no path UI. |
-| Lesson player and five exercise UIs | `NOT_STARTED` | Placeholder `/lesson/[attemptId]` only. |
+| Learning path UI | `VERIFIED` | Phase 9A: AppShell, winding path, four skill states, skill detail start/resume/timed, lesson handoff. |
+| Lesson player and five exercise UIs | `NOT_STARTED` | Phase 9A handoff retrieves attempt only; full player is Phase 10A. |
 | Feedback/failure/completion UI | `NOT_STARTED` | Not implemented. |
-| Profile/leaderboard/settings UI | `NOT_STARTED` | Placeholder routes only. |
-| Content manager UI | `NOT_STARTED` | Placeholder `/admin/content` only. |
-| Responsive accessibility | `NOT_STARTED` | Not implemented. |
-| Dark mode bonus | `PARTIAL` | Theme system implemented (light/dark/system with flash prevention); tokens complete; screens not yet themed. |
-| Automated test suite | `VERIFIED` | Backend **198 passed** (prior). Frontend Vitest **67 passed** (Phase 8C: +45 component/store tests). |
-| Production builds | `VERIFIED` | Frontend `next build` passed (Phase 8C); backend startup prior. |
+| Profile/leaderboard/settings UI | `PARTIAL` | Shell + nav live; page bodies still deferred placeholders (not path/skill). |
+| Content manager UI | `NOT_STARTED` | Placeholder `/admin/content` only. Admin nav omitted until profile exposes `is_content_admin`. |
+| Responsive accessibility | `PARTIAL` | Path/shell keyboard, focus, reduced-motion, 44px targets, no mobile overflow after fix. Full audit in Phase 13. |
+| Dark mode bonus | `PARTIAL` | Theme toggle on settings; path/shell use tokens in light/dark; polish remains for 9B/14. |
+| Automated test suite | `VERIFIED` | Backend **198 passed** (prior). Frontend Vitest **98 passed** (Phase 9A: +31 path/skill/handoff tests). |
+| Production builds | `VERIFIED` | Frontend `next build` passed (Phase 9A); backend LingoQuest API on `:8000`. |
 | Deployment and persistent SQLite | `NOT_STARTED` | Deferred; deployment spec missing. |
 | README and submission evidence | `NOT_STARTED` | No `README.md` exists. |
 
@@ -125,28 +125,29 @@ verified.
 
 ### Phase
 
-Phase 8C — 3D design system and primitives
+Phase 9A — Learning-path functionality
 
 ### Objective
 
-Implement the approved LingoQuest visual foundation: design tokens, typography, 3D interaction
-system, reusable primitives, theme management, toast/modal infrastructure, Quest mascot, and
-development-only showcase.
+Replace learning-path and skill-detail placeholders with a functional responsive learner journey:
+course load, winding path with four backend skill states, gamification bar, skill detail
+start/resume/timed practice, and a temporary lesson handoff that retrieves the attempt.
 
 ### Skill used
 
-`frontend-design` — loaded before implementation. Guided: subject-specific design choices (not
-generic defaults), Nunito as characterful type, 3D depth as the signature visual element,
-restraint in decoration, and self-critique during implementation.
+`frontend-design` — loaded and confirmed before learner-facing UI. Applied approved Phase 8C
+tokens/primitives without redesigning the system; Quest fox flourishes used sparingly.
 
 ### Exit evidence required
 
-- Primitives render at mobile and desktop widths — **passed** (showcase renders at all widths)
-- Mouse, keyboard, touch, focus, reduced-motion, disabled/loading states work — **passed**
-- Typecheck/lint/build pass — **passed** (all three green)
-- Shared tokens/primitives documented — **passed** (token system in globals.css; components in components/ui/)
-- No screen-specific duplicated 3D CSS — **passed** (all depth in components/ui/ only)
-- Tests pass — **passed** (67 tests, all passing)
+- Seeded path shows completed/in-progress/available/locked — **passed** (API + UI + screenshots)
+- Locked skills cannot start — **passed** (tests + locked feedback only)
+- Start/resume navigates to `/lesson/[attemptId]` — **passed** (tests + smoke attempt 143)
+- Top-bar values match API after refresh — **passed** (Maya 5/5, 340 XP, streak 6, gems 100)
+- Loading/error/retry states work — **passed** (path + skill detail tests)
+- Typecheck/lint/build — **passed**
+- Vitest — **passed** (98)
+- Visual viewports without horizontal overflow — **passed** after offset fix
 
 ---
 
@@ -154,16 +155,19 @@ restraint in decoration, and self-critique during implementation.
 
 | Date | Category | Command | Result | Notes |
 |---|---|---|---|---|
+| 2026-07-18 | Phase 9A unit | `cd frontend; npm run test` | **98 passed** | +31 path/skill/shell/handoff tests |
+| 2026-07-18 | Phase 9A typecheck | `cd frontend; npm run typecheck` | **pass** | Clean |
+| 2026-07-18 | Phase 9A lint | `cd frontend; npm run lint` | **pass** | No ESLint warnings or errors |
+| 2026-07-18 | Phase 9A build | `cd frontend; npm run build` | **pass** | Next.js 15.5.20; routes `/`, `/skill/[id]`, `/lesson/[id]` |
+| 2026-07-18 | Phase 9A quality | `: any` / `as any` / `@ts-ignore` / `LingoPath` | **0 matches** | Frontend source clean |
+| 2026-07-18 | Phase 9A quality | `localhost` hardcode in components/app | **0** | Uses `NEXT_PUBLIC_API_BASE_URL` via client |
+| 2026-07-18 | Phase 9A quality | `correct_answer` in learner components/app | **0** | Handoff never renders answers |
+| 2026-07-18 | Phase 9A preflight | OpenAPI on `:8000` before restart | **LingoPath API (stale)** | Identified; not used |
+| 2026-07-18 | Phase 9A preflight | Restarted `d:\LingoQuest\backend` uvicorn `:8000` | **LingoQuest API** | course/me/hearts/leaderboard/achievements **200** |
+| 2026-07-18 | Phase 9A smoke | `POST /api/skills/3/start` | **201** attempt **143** | `resumed=false`, standard, 10 exercises |
+| 2026-07-18 | Phase 9A smoke | `GET /api/lessons/143` | **200** | `in_progress`; no `correct_answer` in body |
 | 2026-07-18 | Phase 8C unit | `cd frontend; npx vitest run` | **67 passed** | button, progress, modal, toast, mascot, stores, client |
-| 2026-07-18 | Phase 8C typecheck | `cd frontend; npx tsc --noEmit` | **pass** | Clean, no errors |
-| 2026-07-18 | Phase 8C lint | `cd frontend; npx next lint` | **pass** | No ESLint warnings or errors |
-| 2026-07-18 | Phase 8C build | `cd frontend; npx next build` | **pass** | Next.js 15.5.20; includes /design-system showcase route |
-| 2026-07-18 | Phase 8C quality | `any` / `@ts-ignore` / `LingoPath` search | **0 matches** | Clean frontend source |
-| 2026-07-18 | Phase 8C quality | Hard-coded colors in primitives | **0** (only in mascot SVG fills) | Mascot fills are original illustration, not token bypass |
-| 2026-07-18 | Phase 8C quality | Duplicated 3D depth outside `components/ui/` | **0** | All depth in shared primitives only |
-| 2026-07-18 | Phase 8C quality | Persisted hearts/XP/streak/crowns/gems in UI store | **0** | Only theme preference persisted |
-| 2026-07-18 | Phase 8C quality | Design-system route in production | **returns 404** | `notFound()` when `NODE_ENV !== 'development'` |
-| 2026-07-18 | Phase 8A smoke | GET course/me/hearts/leaderboard/achievements on `127.0.0.1:8001` | **200** all | Current LingoQuest API; fields match TS contracts |
+| 2026-07-18 | Phase 8A smoke | GET course/me/hearts/leaderboard/achievements on `127.0.0.1:8001` | **200** all | Historical; `:8000` now correct |
 | 2026-07-18 | Phase 7C focused | `python -m pytest tests/test_phase7c_acceptance.py -q` | **13 passed** | Fresh Alembic+seed HTTP acceptance |
 | 2026-07-18 | all backend | `python -m pytest tests/ -q` | **198 passed** | 185 prior + 13 Phase 7C |
 | 2026-07-18 | Alembic head | `python -m alembic heads` | **c8a1f4e2b9d0 (head)** | Unchanged |
@@ -176,10 +180,15 @@ For visual or interactive phases, record the viewport and exact flow exercised.
 
 | Date | Screen/flow | Viewport | Result | Evidence/notes |
 |---|---|---|---|---|
-| — | — | — | Not run | No manual flow has been verified. |
+| 2026-07-18 | Learning path (Maya seeded states) | 1440×900 light/dark | Pass | Desktop rail + right summary; four states visible |
+| 2026-07-18 | Learning path | 768×1024 | Pass | Bottom nav; centered path |
+| 2026-07-18 | Learning path | 390×844 light/dark | Pass | Compact stats + bottom nav; overflow fixed |
+| 2026-07-18 | Learning path | ~320px | Pass | No horizontal overflow after offset/padding fix |
+| 2026-07-18 | Skill detail Food | 1440 / 390 | Pass | Crowns 2/5; Start/Resume + Timed Practice |
+| 2026-07-18 | Lesson handoff | 390×844 | Pass | Attempt 143 retrieved; no `correct_answer` |
+| 2026-07-18 | Locked Questions | API + UI | Pass | Locked node does not call start; feedback only |
 
-Minimum final flows are defined in `/docs/08_TESTING_ACCEPTANCE.md`. A page merely rendering is
-not sufficient evidence for its buttons, persistence, errors, or responsive behavior.
+Smoke attempt created during Phase 9A: **attempt_id=143** (Food, standard, `in_progress`, index 0/10). Preserved intentionally for resume testing. Do not complete/fail in this phase. Course reports `active_attempt_id=143` on Food.
 
 ---
 
@@ -263,15 +272,16 @@ that skill. Do not substitute or reference invented skills.
 |---|---|---|---|
 | Shared API/error/session handling | Typed client + ApiError + session store; Vitest 22 | Not applicable | **Verified** (Phase 8A) |
 | 3D primitives/design tokens | 15 primitives + full token system + 45 component tests | Dev showcase at `/design-system` | **Verified** (Phase 8C) |
-| Learning path | Placeholder `/` only | Required at desktop/mobile | Not verified |
-| Lesson player | Placeholder `/lesson/[attemptId]` | Required at desktop/mobile | Not verified |
-| Profile | Placeholder `/profile` | Required | Not verified |
-| Leaderboard | Placeholder `/leaderboard` | Required | Not verified |
-| Settings/daily goal | Placeholder `/settings` | Required | Not verified |
-| Content manager | Placeholder `/admin/content` | Required | Not verified |
-| Empty/loading/error states | Root loading/error/not-found only | Required | Partial scaffold |
-| Keyboard/focus/reduced motion | — | Required | Not verified |
-| Dark mode | UI store theme key only | Required only if implemented | Not verified |
+| Learning path | GET course → winding path, four states, gamification bar | Screenshots 1440/768/390/320 light+dark | **Verified** (Phase 9A) |
+| Skill detail / start | GET skill + POST start/start-timed → `/lesson/{id}` | Skill screenshots; attempt 143 | **Verified** (Phase 9A) |
+| Lesson player | Handoff retrieves attempt only | Lesson handoff screenshot | Partial (Phase 10A next) |
+| Profile | Shell nav only; body deferred | — | Partial |
+| Leaderboard | Shell nav only; body deferred | — | Partial |
+| Settings/daily goal | Theme toggle live; goal edit deferred | Settings route | Partial |
+| Content manager | Placeholder `/admin/content` | — | Not verified |
+| Empty/loading/error states | Path + skill + handoff loading/error/retry | Exercised in tests + UI | **Verified** (path/skill) |
+| Keyboard/focus/reduced motion | Nav landmarks, node focus, reduced-motion pulse off | Manual + tests | Partial (full audit Phase 13) |
+| Dark mode | Tokenized path/shell; settings ThemeToggle | 1440/390 dark screenshots | Partial |
 
 Visual quality must be evaluated from running screenshots, not inferred from component source.
 
@@ -319,7 +329,9 @@ for correcting the source document.
 | Severity | Issue | Impact | Owner/action | Status |
 |---|---|---|---|---|
 | Info | `/docs/09_DEPLOYMENT.md` not yet created | No impact until deployment phase | Create when Phase 15 starts | Open |
-| Info | Stale uvicorn on :8000 may be Phase-1 health-only API | Local smoke/dev confusion | Restart current `app.main:app` on 8000 | Open |
+| Resolved | Stale LingoPath API on :8000 | Confused local frontend | Restarted LingoQuest `app.main:app` on 8000 in Phase 9A | Resolved 2026-07-18 |
+| Info | Profile API omits `is_content_admin` | Desktop admin nav cannot be gated from profile | Omit admin link until contract adds flag; do not invent | Open |
+| Info | Smoke attempt **143** (Food, in_progress) | Resume testing; path shows Food active | Preserve; do not complete in 9A; optional isolated cleanup later | Open (intentional) |
 | Info | Phase 6B Sonnet audit completed | All migration/TTS/timed contracts verified | Phase 6B marked VERIFIED | Resolved 2026-07-18 |
 | Info | Phase 5B formal Sonnet audit not separately recorded | Completion path covered by tests; **Phase 7B closed API/gamification conformance** | Phase 7B | Resolved 2026-07-18 |
 | Info | No DB unique constraint preventing dual in_progress attempts | Service-level race cleanup proven | Acceptable for SQLite demo | Resolved 2026-07-18 |
@@ -499,49 +511,84 @@ for correcting the source document.
 
 ## Files changed in the latest phase
 
-Phase 8C 3D design system and primitives:
+Phase 9A functional responsive learning path:
 
 | File | Change | Reason |
 |---|---|---|
-| `frontend/app/globals.css` | Rewritten | Complete CSS custom property token system (light + dark themes, radii, spacing, shadows, depth, motion, z-index, keyframes) |
-| `frontend/tailwind.config.js` | Rewritten | Semantic Tailwind extensions consuming CSS tokens; `darkMode: 'class'`; Nunito font family; custom fontSize scale |
-| `frontend/app/layout.tsx` | Updated | Nunito font import, ThemeScript for flash prevention, viewport export |
-| `frontend/lib/utils/index.ts` | Updated | Upgraded `cn()` to use clsx + tailwind-merge |
-| `frontend/stores/ui-store.ts` | Updated | Added 'system' theme preference; `applyTheme()` applies dark class |
-| `frontend/vitest.config.ts` | Updated | jsdom environment; @vitejs/plugin-react for JSX transform |
-| `frontend/tests/setup.ts` | Updated | Added cleanup, jest-dom/vitest, matchMedia mock |
-| `frontend/components/ui/theme-script.tsx` | Created | Inline script preventing theme flash before hydration |
-| `frontend/components/ui/button-3d.tsx` | Created | 3D button with 6 variants, 3 sizes, loading/disabled states |
-| `frontend/components/ui/icon-button-3d.tsx` | Created | Circular icon button with depth and active state |
-| `frontend/components/ui/surface-card.tsx` | Created | Card surface with default/elevated/interactive variants |
-| `frontend/components/ui/choice-tile.tsx` | Created | Radio-style answer choice with correct/incorrect/selected states |
-| `frontend/components/ui/word-tile.tsx` | Created | Word bank tile with placed/correct/incorrect states |
-| `frontend/components/ui/match-tile.tsx` | Created | Match pair tile with selected/paired/correct/used states |
-| `frontend/components/ui/status-badge.tsx` | Created | Small labeled badge with 6 semantic variants |
-| `frontend/components/ui/stat-indicator.tsx` | Created | Icon + number pill for gamification stats |
-| `frontend/components/ui/progress-bar.tsx` | Created | Horizontal fill bar with accessible semantics and clamping |
-| `frontend/components/ui/progress-ring.tsx` | Created | SVG circular progress ring with crown segments |
-| `frontend/components/ui/modal.tsx` | Created | Focus-trapping dialog with Motion entrance, dismissible/non-dismissible |
-| `frontend/components/ui/toast.tsx` | Created | Toast provider with queue, priority, auto-dismiss, max 2 visible |
-| `frontend/components/ui/feedback-surface.tsx` | Created | Bottom feedback bar for correct/incorrect with Motion slide |
-| `frontend/components/ui/skeleton.tsx` | Created | Loading placeholder with text/circular/rectangular variants |
-| `frontend/components/ui/theme-toggle.tsx` | Created | Light/dark/system radio toggle |
-| `frontend/components/ui/quest-mascot.tsx` | Created | Original Quest fox SVG with neutral/encouraging/celebrating/concerned |
-| `frontend/components/ui/index.ts` | Updated | Barrel export for all 15 primitives |
-| `frontend/app/design-system/page.tsx` | Created | Dev-only showcase rendering all primitives and states |
-| `frontend/tests/components/button-3d.test.tsx` | Created | 16 tests: variants, sizes, disabled, loading, keyboard |
-| `frontend/tests/components/progress.test.tsx` | Created | 6 tests: aria attributes, clamping, max=0 safety |
-| `frontend/tests/components/modal.test.tsx` | Created | 7 tests: open/close, focus trap, Escape, non-dismissible |
-| `frontend/tests/components/toast.test.tsx` | Created | 4 tests: add, queue limit, dismiss, auto-dismiss |
-| `frontend/tests/components/mascot.test.tsx` | Created | 7 tests: decorative, labeled, variants, sizing |
-| `frontend/tests/stores/ui-store.test.ts` | Rewritten | 5 tests: theme preference, dark class, no learner state |
-| `frontend/package.json` | Updated | Added @fontsource-variable/nunito, clsx, tailwind-merge, lucide-react, testing deps |
+| `frontend/app/page.tsx` | Replaced | Real learning path via AppShell + LearningPath |
+| `frontend/app/skill/[skillId]/page.tsx` | Replaced | Skill detail with start/resume/timed |
+| `frontend/app/lesson/[attemptId]/page.tsx` | Replaced | Focused handoff (no learner nav); retrieve only |
+| `frontend/app/leaderboard/page.tsx` | Updated | Shell + deferred body |
+| `frontend/app/profile/page.tsx` | Updated | Shell + deferred body |
+| `frontend/app/settings/page.tsx` | Updated | Shell + ThemeToggle |
+| `frontend/app/layout.tsx` | Updated | ToastProvider wrapper |
+| `frontend/app/globals.css` | Updated | Available-node pulse keyframe + reduced-motion |
+| `frontend/components/layout/*` | Created | AppShell, DesktopNav, MobileNav, GamificationBar, LearnerSummaryPanel |
+| `frontend/components/path/*` | Created | LearningPath, UnitSection, UnitBanner, SkillNode, PathConnector |
+| `frontend/components/skill/skill-detail.tsx` | Created | Detail + start/resume/timed with pending/error handling |
+| `frontend/components/lesson/lesson-handoff.tsx` | Created | Temporary retrieve-only lesson screen |
+| `frontend/lib/icons/skill-icons.tsx` | Created | Typed icon map + unknown-key fallback |
+| `frontend/lib/path/current-skill.ts` | Created | Current-skill selection + path offset rhythm |
+| `frontend/hooks/use-learner-shell-data.ts` | Created | Abortable course load into session store |
+| `frontend/hooks/use-reduced-motion.ts` | Created | prefers-reduced-motion hook |
+| `frontend/tests/components/{home-page,learning-path,skill-detail,lesson-handoff}.test.tsx` | Created | Phase 9A focused coverage |
+| `frontend/tests/path/helpers.test.ts` | Created | Current-skill + icon fallback helpers |
+| `frontend/tests/fixtures/phase9a.ts` | Created | Shared API mocks |
+| `frontend/tests/setup.ts` | Updated | scrollIntoView mock |
+| `docs/07_HANDOFF_CURRENT_STATE.md` | Updated | Phase 9A VERIFIED evidence |
 
-No backend code, API contracts, or database changes were made.
+### Routes completed
+
+- `/` — learning path
+- `/skill/[skillId]` — skill detail / start
+- `/lesson/[attemptId]` — temporary handoff (no shell nav)
+- `/leaderboard`, `/profile`, `/settings` — shell destinations (bodies deferred)
+
+### API endpoints connected
+
+- `GET /api/course`
+- `GET /api/skills/{id}`
+- `POST /api/skills/{id}/start`
+- `POST /api/skills/{id}/start-timed`
+- `GET /api/lessons/{attempt_id}`
+- Learner summary fields from course/skill responses (no local XP/heart/crown math)
 
 ---
 
-## Phase 8A evidence
+## Working tree safety
+
+| Check | Result |
+|---|---|
+| Current branch | `main` |
+| Pre-existing unrelated edits | Preserved |
+| Files changed this phase | Path/shell/skill/handoff + tests + handoff doc |
+| Backend production code | **Unchanged** (server restarted only) |
+| Developer local DB | Smoke created attempt **143** only; not completed |
+
+---
+
+## Exact next request for Cursor
+
+Phase 9A is VERIFIED. Use this request next:
+
+```text
+Perform LingoQuest Phase 9B using Opus and frontend-design: polish the real learning path and skill
+start screens without changing API behaviour.
+
+Follow the Common phase protocol. Create a distinctive winding path, strong unit hierarchy,
+tactile nodes, clear state differentiation, progress/crown readability, balanced desktop width,
+and excellent mobile flow. Use original LingoQuest visuals and approved primitives.
+
+Run the app and judge rendered screenshots at mobile, tablet, and desktop sizes. Fix visual and
+interaction issues you can verify. Do not modify backend contracts.
+```
+
+**Recommended model:** Claude Opus  
+**Required skill:** `frontend-design`
+
+---
+
+## Phase 8A evidence (historical)
 
 ### Scaffold mismatches corrected
 
@@ -591,28 +638,15 @@ None requiring a type or backend fix for the smoke endpoints.
 
 **Informational (backend frozen):** written API_SPEC health examples differ from live health (`status: "healthy"` without `service`; ready `database: "connected"`). Frontend health types match the live backend. Not changed in this phase.
 
-### Remaining risks
+### Remaining risks (Phase 8A historical; superseded where noted)
 
-- Stale uvicorn on port 8000 may confuse local frontend if `NEXT_PUBLIC_API_BASE_URL` points at it — restart current `app.main:app` on 8000 for day-to-day use
-- Developer DB historically wiped answers (recovered to 1420 in later sessions per prior notes) — smoke did not mutate
-- Visual/UX work still not started (Phase 8B+)
+- ~~Stale uvicorn on port 8000~~ — **Resolved in Phase 9A** (LingoQuest API restarted on `:8000`)
+- Developer DB historically wiped answers (recovered to 1420) — open for optional reset recovery
 - Deployment / R-17 still deferred
 
 ---
 
-## Working tree safety
-
-| Check | Result |
-|---|---|
-| Current branch | `main` |
-| Pre-existing unrelated edits | Preserved |
-| Files changed this phase | Design system primitives + tests + handoff (see table above) |
-| Backend production code | **Unchanged** |
-| Developer local DB | **Not touched** |
-
----
-
-## Phase 8C implementation details
+## Phase 8C implementation details (historical)
 
 ### Token system
 
@@ -677,10 +711,11 @@ None requiring a type or backend fix for the smoke endpoints.
 | `jsdom` | dev | DOM environment for Vitest |
 | `@vitejs/plugin-react@4` | dev | JSX transform for Vitest |
 
-### Test counts (67 total)
+### Test counts (98 total)
 
 | Test file | Tests | Coverage |
 |---|---|---|
+| Phase 9A path/skill/handoff/home | 31 | Course load, four states, crowns, locked, start/resume/timed, handoff |
 | `button-3d.test.tsx` | 16 | Variants, sizes, disabled, loading, keyboard, className |
 | `progress.test.tsx` | 6 | Aria attributes, clamping, max=0 safety |
 | `modal.test.tsx` | 7 | Open/close, dialog role, focus trap, Escape, non-dismissible |
@@ -689,26 +724,6 @@ None requiring a type or backend fix for the smoke endpoints.
 | `ui-store.test.ts` | 5 | Theme preference, dark class toggle, no learner state |
 | `session-store.test.ts` | 4 | Prior Phase 8A tests (unchanged) |
 | `client.test.ts` | 18 | Prior Phase 8A tests (unchanged) |
-
----
-
-## Exact next request for Cursor
-
-Phase 8C is VERIFIED. Use this request next:
-
-```text
-Perform LingoQuest Phase 9A: functional path and skill-start flow.
-
-Follow the Common phase protocol. Connect GET course and GET skill detail. Implement ordered units,
-all four skill states, crowns/progress, persistent learner top bar, available/in-progress skill
-navigation, locked inert behaviour with explanation, and /skill/[skillId] start/resume actions.
-
-POST start must navigate using returned attempt_id. Use backend values only. Reuse approved UI
-primitives; do not redesign the system.
-```
-
-**Recommended model:** Claude Sonnet
-**Required skill:** None
 
 ---
 

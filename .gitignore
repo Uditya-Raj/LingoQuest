@@ -40,3 +40,6 @@ Thumbs.db
 # Local Claude/Cursor state
 .claude/settings.local.json
 .cursor/*.json
+# Local visual QA artifacts
+frontend/tmp-phase9a-screens/
+
