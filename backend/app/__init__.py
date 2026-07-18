@@ -1,0 +1,1 @@
+"""LingoPath backend application."""

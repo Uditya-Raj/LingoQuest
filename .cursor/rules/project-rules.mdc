@@ -1,0 +1,161 @@
+---
+description: Project-wide operating rules for the LingoQuest Next.js, FastAPI, and SQLite repository
+globs:
+alwaysApply: true
+---
+
+# LingoQuest project rules
+
+These instructions apply to every task in this repository.
+
+## Start with verified context
+
+Before planning or editing:
+
+1. Read `/CLAUDE.md` for complete project rules and the R-01–R-15 feature checklist.
+2. Read `/docs/07_HANDOFF_CURRENT_STATE.md` for the only authoritative implementation status.
+3. Find the requested phase/subphase in `/docs/06_IMPLEMENTATION_PHASES.md`.
+4. Read only the source documents/headings listed for that phase.
+5. Inspect the relevant existing code and `git status` before changing files.
+
+Specifications describe required behavior. The handoff describes what is currently implemented.
+Do not infer completion from an old conversation, README claim, filename, scaffold, or generated
+code that has not passed its phase checks.
+
+If the repository is uninspected, perform Phase 0. If the backend is claimed complete without
+current evidence, run Phases 7A, 7B, and 7C before frontend work.
+
+## Work one bounded phase at a time
+
+- State a short plan before implementation.
+- Preserve working code and unrelated user changes.
+- Implement only the requested phase/subphase.
+- If the phase already exists, verify it instead of rebuilding it.
+- Report specification conflicts before deviating.
+- Run the phase exit checks and relevant `/docs/08_TESTING_ACCEPTANCE.md` cases.
+- Fix failures introduced by the phase.
+- Update `/docs/07_HANDOFF_CURRENT_STATE.md` with evidence and the exact next phase.
+- Stop; do not start another phase in the same request.
+
+No feature is complete merely because code was generated.
+
+## Source-of-truth documents
+
+- Requirements/evidence: `/docs/00_REQUIREMENTS_TRACEABILITY.md`
+- Scope/document map: `/docs/00_MASTER.md`
+- Architecture: `/docs/01_ARCHITECTURE.md`
+- Database/migrations: `/docs/02_DATABASE_SCHEMA.md`
+- HTTP/exercise contracts: `/docs/03_API_SPEC.md`
+- Gamification rules: `/docs/04_GAMIFICATION_LOGIC.md`
+- Deterministic seed: `/docs/05_SEED_DATA.md`
+- Phase prompts/model routing: `/docs/06_IMPLEMENTATION_PHASES.md`
+- Current implementation status: `/docs/07_HANDOFF_CURRENT_STATE.md`
+- Testing/acceptance: `/docs/08_TESTING_ACCEPTANCE.md`
+
+When contracts materially conflict, stop and propose a correction. Do not silently select the
+easier behavior.
+
+## Backend and data invariants
+
+- Business logic lives in `/backend/app/services/`; routers only validate/resolve/call/respond.
+- FastAPI routers do not contain streak, hearts, XP, crown, lock, goal, achievement, grading, or
+  completion logic.
+- The backend and SQLite own hearts, gems, XP, today XP, daily goal, streak, crowns, skill state,
+  attempts, achievements, and leaderboard rank.
+- Frontend state may cache API responses and manage transient UI only. Never calculate or persist
+  learner progress in React, Zustand, or localStorage.
+- All five exercise `options`, stored `correct_answer`, and submitted `answer` shapes exactly
+  match `/docs/03_API_SPEC.md`.
+- Start/retrieve/resume payloads never expose answers or hidden solution metadata.
+- Seed validation, content-admin validation, and runtime grading reuse the same exercise-contract
+  validation.
+- Answer and completion mutations validate user ownership, attempt status, exercise order, and
+  idempotency before changing state.
+- A valid wrong answer loses at most one heart. Zero hearts fails the attempt atomically.
+- Completion awards XP, streak, crown, unlocks, and achievements exactly once in one transaction.
+- Use the injectable logical clock; never wait on or embed real wall-clock time in domain tests.
+- Return real HTTP status codes with the standard error envelope; never return 200 for a failure.
+- Use Alembic migrations. Runtime `create_all()` is not the migration strategy.
+- Enable SQLite foreign keys on every connection.
+- Resolve the simplified current learner centrally; never scatter a magic user ID.
+- Preserve user data and migration history. Do not reset an unresolved database path.
+
+## Functional honesty
+
+Every required visible action must work end to end through the real backend. No hardcoded or
+frontend-only hearts, XP, streak, crowns, rank, daily progress, lesson completion, or achievement
+state is permitted.
+
+Do not create:
+
+- Buttons without working handlers.
+- Links to `#`.
+- Forms that report success without persistence.
+- Fake refill/practice/settings/content-management actions.
+- Client-side lesson advancement before a successful answer response.
+- Seed-only counters disconnected from persisted attempts.
+
+Only the deferred areas in the requirements may appear as placeholders: pronunciation/speech,
+payments/subscription, social features beyond the leaderboard, and additional languages. Label
+them `Coming Soon` or `Demo Only` and make them disabled or informational. Never hide a required
+feature behind a placeholder.
+
+## Frontend model and skill routing
+
+Use Sonnet for repository audits, architecture, database, backend, tests, fixes, routine frontend
+API wiring, and variants of approved components.
+
+Reserve Opus for visual judgment in Phases 8B, 8C, 9B, 10C, and 14. Do not spend Opus on
+migrations, seed dictionaries, CRUD boilerplate, routine API wiring, or log/README formatting.
+
+Exactly two project frontend skills exist:
+
+```text
+.claude/skills/ui-ux-pro-max/SKILL.md
+.claude/skills/frontend-design/SKILL.md
+```
+
+- Use `ui-ux-pro-max` for UX hierarchy, responsive composition, accessibility, and usability
+  audits when the phase requests it.
+- Use `frontend-design` for original visual direction, shared 3D primitives, major screen
+  composition, motion, and final screenshot polish when the phase requests it.
+- Read the selected `SKILL.md` before applying it.
+- Do not invent or reference `duolingo-3d-ui`, `frontend-qa`, or other project skills.
+- Skill advice cannot override functionality, accessibility, API contracts, or project scope.
+
+## Original 3D UI requirements
+
+- Use the LingoQuest name and an original visual identity.
+- Do not fetch, trace, bundle, or reproduce Duolingo logos, mascot art, audio, screenshots, or
+  exact product copy.
+- Implement tactile depth, pressed travel, semantic colors, typography, spacing, and motion with
+  reusable design tokens and shared primitives.
+- Reuse `Button3D`, `IconButton3D`, `Card3D`, `SkillNode3D`, `ProgressBar`, `ProgressRing`,
+  `FeedbackSheet`, `Modal3D`, and `StatPill` patterns rather than duplicating one-off CSS.
+- Support semantic controls, keyboard use, visible focus, non-color state cues, form labels,
+  dialog focus, reduced motion, mobile targets, and responsive layouts.
+- Judge visual phases from the running application and screenshots at approximately 360px,
+  768px, and 1280px+, not source code alone.
+
+## Verification and reporting
+
+- Use isolated temporary databases for automated mutations.
+- Test all five graders and UI interactions.
+- Test refresh/resume, success, zero-heart failure, refill/retry, daily goal, leaderboard updates,
+  achievements, content create/edit, user isolation, and duplicate/concurrent requests.
+- Run relevant unit/integration/component/E2E tests, lint, typecheck, and production builds.
+- Inspect browser console/network, keyboard behavior, loading/error states, reduced motion, and
+  required viewports during frontend gates.
+- Record commands and concise results in the handoff. Never claim unrun verification.
+- Required features R-01–R-14 must be green before optional polish. R-15 remains open until
+  delivery/deployment is explicitly authorized and verified.
+
+## Repository and external-action safety
+
+- Preserve a dirty worktree and unrelated edits.
+- Do not use destructive reset, checkout, clean, or broad deletion.
+- Do not commit secrets, `.env`, local databases, caches, dependency folders, or build output.
+- Do not create commits, push, open pull requests, deploy, create external resources, or send
+  messages unless the user explicitly requests that action.
+- Deployment is currently deferred. Do not create provider configuration, hosting resources,
+  domains, or production secrets until explicitly authorized.
