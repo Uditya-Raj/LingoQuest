@@ -1,5 +1,5 @@
 import { describe, expect, it, vi, beforeEach } from 'vitest'
-import { render, screen, waitFor } from '@testing-library/react'
+import { screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 
 import { LessonPlayer } from '@/components/lesson/lesson-player'
@@ -10,6 +10,7 @@ import {
   mockFailedAttempt,
   mockLessonAttempt,
 } from '@/tests/fixtures/phase10a'
+import { renderWithToast } from '@/tests/helpers/render-with-toast'
 import { useSessionStore } from '@/stores/session-store'
 
 const getAttemptMock = vi.fn()
@@ -43,7 +44,9 @@ describe('LessonPlayer shell', () => {
       mockLessonAttempt({ current_index: 1, hearts: 3, total_exercises: 5 }),
     )
 
-    render(<LessonPlayer attemptId={9001} renderer={testExerciseRenderer} />)
+    renderWithToast(
+      <LessonPlayer attemptId={9001} renderer={testExerciseRenderer} />,
+    )
 
     await waitFor(() => {
       expect(screen.getByRole('progressbar')).toHaveAttribute(
@@ -57,7 +60,7 @@ describe('LessonPlayer shell', () => {
   it('never depends on correct_answer in retrieve payload', async () => {
     const attempt = mockLessonAttempt()
     getAttemptMock.mockResolvedValue(attempt)
-    const { container } = render(<LessonPlayer attemptId={9001} />)
+    const { container } = renderWithToast(<LessonPlayer attemptId={9001} />)
     await screen.findByRole('heading', { name: attempt.exercises[0]!.prompt })
 
     expect(container.innerHTML).not.toContain('correct_answer')
@@ -69,7 +72,7 @@ describe('LessonPlayer shell', () => {
   it('opens exit confirmation and keeps lesson active when cancelled', async () => {
     const user = userEvent.setup()
     getAttemptMock.mockResolvedValue(mockLessonAttempt())
-    render(<LessonPlayer attemptId={9001} />)
+    renderWithToast(<LessonPlayer attemptId={9001} />)
 
     const exitButton = await screen.findByRole('button', {
       name: /Exit Food lesson/i,
@@ -86,34 +89,37 @@ describe('LessonPlayer shell', () => {
 
   it('shows completed state for terminal completed attempts', async () => {
     getAttemptMock.mockResolvedValue(mockCompletedAttempt())
-    render(<LessonPlayer attemptId={9001} />)
-    expect(await screen.findByRole('heading', { name: 'Food' })).toBeInTheDocument()
-    expect(screen.getByText(/Lesson complete/i)).toBeInTheDocument()
+    renderWithToast(<LessonPlayer attemptId={9001} />)
+    expect(
+      await screen.findByRole('heading', { name: 'Lesson complete!' }),
+    ).toBeInTheDocument()
+    expect(screen.getByText(/Food/i)).toBeInTheDocument()
   })
 
   it('shows failed state for terminal failed attempts', async () => {
     getAttemptMock.mockResolvedValue(mockFailedAttempt())
-    render(<LessonPlayer attemptId={9001} />)
+    renderWithToast(<LessonPlayer attemptId={9001} />)
     expect(await screen.findByRole('heading', { name: 'Out of hearts' })).toBeInTheDocument()
+    expect(screen.getByRole('dialog')).toBeInTheDocument()
   })
 
   it('shows not-found error for missing attempts', async () => {
     getAttemptMock.mockRejectedValue(
       new ApiError(404, 'ATTEMPT_NOT_FOUND', 'Attempt not found'),
     )
-    render(<LessonPlayer attemptId={999} />)
+    renderWithToast(<LessonPlayer attemptId={999} />)
     expect(await screen.findByRole('heading', { name: 'Attempt not found' })).toBeInTheDocument()
   })
 
   it('uses focused lesson landmark structure while loading', () => {
     getAttemptMock.mockImplementation(() => new Promise(() => {}))
-    render(<LessonPlayer attemptId={9001} />)
+    renderWithToast(<LessonPlayer attemptId={9001} />)
     expect(screen.getByLabelText('Loading lesson')).toBeInTheDocument()
   })
 
   it('keeps Check disabled until a valid exercise draft exists', async () => {
     getAttemptMock.mockResolvedValue(mockLessonAttempt())
-    render(<LessonPlayer attemptId={9001} />)
+    renderWithToast(<LessonPlayer attemptId={9001} />)
     await screen.findByRole('heading', { name: 'Select hello' })
     expect(screen.getByRole('button', { name: 'Check' })).toBeDisabled()
     expect(screen.getByRole('radio', { name: 'Hello' })).toBeInTheDocument()
@@ -127,7 +133,7 @@ describe('LessonPlayer shell', () => {
         expires_at: '2026-07-19T13:00:00Z',
       }),
     )
-    render(<LessonPlayer attemptId={9001} />)
+    renderWithToast(<LessonPlayer attemptId={9001} />)
     expect(
       await screen.findByText(/Timed Practice session/i),
     ).toBeInTheDocument()

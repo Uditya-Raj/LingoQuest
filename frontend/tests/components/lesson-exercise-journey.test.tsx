@@ -1,5 +1,5 @@
 import { describe, expect, it, vi, beforeEach } from 'vitest'
-import { render, screen, waitFor } from '@testing-library/react'
+import { screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 
 import { LessonPlayer } from '@/components/lesson/lesson-player'
@@ -10,6 +10,7 @@ import {
   mockFiveTypeAttempt,
   mockJourneyCompletion,
 } from '@/tests/fixtures/phase10b'
+import { renderWithToast } from '@/tests/helpers/render-with-toast'
 import { useSessionStore } from '@/stores/session-store'
 
 const getAttemptMock = vi.fn()
@@ -76,7 +77,7 @@ async function answerCurrentExercise(user: ReturnType<typeof userEvent.setup>) {
   await user.click(check)
 
   const continueButton = await screen.findByRole('button', {
-    name: /Continue|Complete lesson/i,
+    name: /Continue|Finish lesson/i,
   })
   await user.click(continueButton)
   return exercise
@@ -108,7 +109,7 @@ describe('LessonPlayer five-exercise journey', () => {
     )
     completeLessonMock.mockResolvedValue(mockJourneyCompletion())
 
-    render(<LessonPlayer attemptId={9200} />)
+    renderWithToast(<LessonPlayer attemptId={9200} />)
 
     await screen.findByRole('heading', {
       name: allFiveExercises[0]!.prompt,
@@ -143,7 +144,9 @@ describe('LessonPlayer five-exercise journey', () => {
     await waitFor(() => {
       expect(completeLessonMock).toHaveBeenCalledTimes(1)
     })
-    expect(await screen.findByText(/Lesson complete/i)).toBeInTheDocument()
+    expect(
+      await screen.findByRole('heading', { name: 'Lesson complete!' }),
+    ).toBeInTheDocument()
     expect(useSessionStore.getState().completion?.xp.earned).toBe(15)
 
     expect(submitAnswerMock).toHaveBeenCalledTimes(5)
@@ -184,7 +187,7 @@ describe('LessonPlayer five-exercise journey', () => {
       new ApiError(409, 'CONFLICT', 'Answer conflict'),
     )
 
-    render(<LessonPlayer attemptId={9200} />)
+    renderWithToast(<LessonPlayer attemptId={9200} />)
     await screen.findByRole('heading', {
       name: allFiveExercises[0]!.prompt,
     })
@@ -217,7 +220,7 @@ describe('LessonPlayer five-exercise journey', () => {
       }),
     )
 
-    render(<LessonPlayer attemptId={9200} />)
+    renderWithToast(<LessonPlayer attemptId={9200} />)
     await screen.findByRole('heading', {
       name: allFiveExercises[0]!.prompt,
     })
@@ -226,6 +229,7 @@ describe('LessonPlayer five-exercise journey', () => {
     await user.click(screen.getByRole('button', { name: 'Check' }))
 
     expect(await screen.findByRole('heading', { name: 'Out of hearts' })).toBeInTheDocument()
+    expect(screen.getByRole('dialog')).toBeInTheDocument()
     expect(completeLessonMock).not.toHaveBeenCalled()
     expect(useSessionStore.getState().hearts?.hearts).toBe(0)
   })
@@ -242,7 +246,7 @@ describe('LessonPlayer five-exercise journey', () => {
         }),
     )
 
-    render(<LessonPlayer attemptId={9200} />)
+    renderWithToast(<LessonPlayer attemptId={9200} />)
     await screen.findByRole('heading', {
       name: allFiveExercises[0]!.prompt,
     })
@@ -264,7 +268,7 @@ describe('LessonPlayer five-exercise journey', () => {
     getAttemptMock.mockResolvedValue(mockFiveTypeAttempt())
     submitAnswerMock.mockResolvedValue(mockAnswerForExercise(allFiveExercises[0]!))
 
-    render(<LessonPlayer attemptId={9200} />)
+    renderWithToast(<LessonPlayer attemptId={9200} />)
     await screen.findByRole('heading', {
       name: allFiveExercises[0]!.prompt,
     })
@@ -272,7 +276,10 @@ describe('LessonPlayer five-exercise journey', () => {
     await user.click(screen.getByRole('radio', { name: 'Hola' }))
     await user.click(screen.getByRole('button', { name: 'Check' }))
 
-    expect(await screen.findByText('Correct!')).toBeInTheDocument()
+    expect(
+      await screen.findByRole('button', { name: 'Continue' }),
+    ).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Check' })).not.toBeInTheDocument()
     expect(screen.getByRole('radio', { name: 'Hola' })).toBeDisabled()
 
     await user.click(screen.getByRole('button', { name: 'Continue' }))

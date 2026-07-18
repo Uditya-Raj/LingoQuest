@@ -8,7 +8,10 @@ import { create } from 'zustand'
 
 import type { ApiError } from '@/lib/api/client'
 import type { LearnerSummary } from '@/lib/contracts/common'
-import type { HeartsStatusResponse } from '@/lib/contracts/hearts'
+import type {
+  HeartsRefillResponse,
+  HeartsStatusResponse,
+} from '@/lib/contracts/hearts'
 import type {
   CompletionResponse,
   LessonAttemptResponse,
@@ -35,6 +38,7 @@ export interface SessionState {
     max_hearts: number
     next_heart_at: string | null
   }) => void
+  applyRefill: (payload: HeartsRefillResponse) => void
   setCompletion: (completion: CompletionResponse) => void
   setLoading: () => void
   setError: (error: Pick<ApiError, 'status' | 'code' | 'message'>) => void
@@ -117,6 +121,32 @@ export const useSessionStore = create<SessionState>((set) => ({
               hearts: payload.hearts_remaining,
               max_hearts: payload.max_hearts,
               next_heart_at: payload.next_heart_at,
+            },
+      status: 'idle',
+      error: null,
+    })),
+
+  /**
+   * Apply hearts/gems from a refill response exactly — no optimistic arithmetic.
+   */
+  applyRefill: (payload) =>
+    set((state) => ({
+      hearts: {
+        hearts: payload.hearts,
+        max_hearts: payload.max_hearts,
+        next_heart_at: payload.next_heart_at,
+        seconds_until_next: null,
+        regen_interval_minutes: state.hearts?.regen_interval_minutes ?? 15,
+      },
+      learner:
+        state.learner === null
+          ? null
+          : {
+              ...state.learner,
+              hearts: payload.hearts,
+              max_hearts: payload.max_hearts,
+              next_heart_at: payload.next_heart_at,
+              gems: payload.gems,
             },
       status: 'idle',
       error: null,

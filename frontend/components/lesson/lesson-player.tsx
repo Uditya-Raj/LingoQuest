@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 
 import type { ExerciseRendererContract } from '@/components/lesson/exercise-renderer-types'
@@ -16,6 +16,8 @@ import {
 } from '@/components/lesson/lesson-surfaces'
 import { exerciseRenderer } from '@/components/lesson/exercise-renderer'
 import { Button3D } from '@/components/ui/button-3d'
+import { QuestMascot } from '@/components/ui/quest-mascot'
+import { useToast } from '@/components/ui/toast'
 import { useLessonSession } from '@/hooks/use-lesson-session'
 import type { SubmittedAnswer } from '@/lib/contracts/exercises'
 
@@ -29,18 +31,22 @@ export function LessonPlayer({
   renderer = exerciseRenderer,
 }: LessonPlayerProps) {
   const router = useRouter()
+  const { addToast } = useToast()
   const session = useLessonSession({ attemptId })
   const { state } = session
 
   const [draftAnswer, setDraftAnswer] = useState<SubmittedAnswer | null>(null)
   const [confirmExitOpen, setConfirmExitOpen] = useState(false)
+  const mutationToastKeyRef = useRef<string | null>(null)
 
   const activeExercise =
     state.status === 'ready' || state.status === 'submitting'
       ? state.currentExercise
       : state.status === 'feedback'
         ? state.answeredExercise
-        : null
+        : state.status === 'completing'
+          ? state.resumeFeedback.answeredExercise
+          : null
 
   const rendererResetKey = useMemo(() => {
     if (activeExercise === null) return 'idle'
@@ -50,6 +56,23 @@ export function LessonPlayer({
   useEffect(() => {
     setDraftAnswer(null)
   }, [rendererResetKey])
+
+  useEffect(() => {
+    if (!session.mutationError) {
+      mutationToastKeyRef.current = null
+      return
+    }
+    const key = `${session.mutationError.code}:${session.mutationError.message}`
+    if (mutationToastKeyRef.current === key) return
+    mutationToastKeyRef.current = key
+    addToast({
+      variant: 'error',
+      title: 'Connection issue',
+      description: session.mutationError.message,
+      priority: 'high',
+      duration: 5000,
+    })
+  }, [addToast, session.mutationError])
 
   const submitPayload = useMemo(() => {
     if (activeExercise === null || state.status !== 'ready') return null
@@ -103,13 +126,23 @@ export function LessonPlayer({
       <LessonFailedSurface
         skillTitle={state.attempt.skill_title}
         failureReason={state.failureReason}
+        attempt={state.attempt}
       />
     )
   }
 
   const attempt = state.attempt
-  const feedbackState = state.status === 'feedback' ? state : null
+  const feedbackState =
+    state.status === 'feedback'
+      ? state
+      : state.status === 'completing'
+        ? {
+            answerResult: state.resumeFeedback.answerResult,
+            answeredExercise: state.resumeFeedback.answeredExercise,
+          }
+        : null
   const Renderer = renderer.Component
+  const showActionBar = state.status === 'ready' || state.status === 'submitting'
 
   return (
     <LessonLayout
@@ -131,7 +164,7 @@ export function LessonPlayer({
         ) : undefined
       }
       exercise={
-        activeExercise ? (
+        activeExercise && state.status !== 'completing' ? (
           <Renderer
             exercise={activeExercise}
             draftAnswer={draftAnswer}
@@ -149,27 +182,37 @@ export function LessonPlayer({
             }
           />
         ) : state.status === 'completing' ? (
-          <p className="text-lq-sm text-lq-text-secondary" aria-live="polite">
-            Completing lesson…
-          </p>
+          <div
+            className="flex flex-1 flex-col items-center justify-center gap-3 py-10 text-center"
+            aria-live="polite"
+            aria-busy="true"
+          >
+            <QuestMascot variant="celebrating" size={72} decorative />
+            <p className="text-lq-lg font-extrabold">Wrapping up your quest…</p>
+            <p className="text-lq-sm text-lq-text-secondary">
+              Confirming XP and progress with the server.
+            </p>
+          </div>
         ) : null
       }
       actions={
-        <div className="space-y-2">
-          {session.mutationError ? (
-            <p className="text-lq-sm font-bold text-lq-text-error" role="alert">
-              {session.mutationError.message}
-            </p>
-          ) : null}
-          <Button3D
-            className="w-full"
-            onClick={handleSubmit}
-            disabled={!canPressCheck}
-            loading={session.isSubmitting}
-          >
-            Check
-          </Button3D>
-        </div>
+        showActionBar ? (
+          <div className="space-y-2">
+            {session.mutationError ? (
+              <p className="text-lq-sm font-bold text-lq-text-error" role="alert">
+                {session.mutationError.message}
+              </p>
+            ) : null}
+            <Button3D
+              className="w-full"
+              onClick={handleSubmit}
+              disabled={!canPressCheck}
+              loading={session.isSubmitting}
+            >
+              {session.isSubmitting ? 'Checking…' : 'Check'}
+            </Button3D>
+          </div>
+        ) : null
       }
       feedback={
         feedbackState ? (
@@ -177,8 +220,10 @@ export function LessonPlayer({
             open
             answerResult={feedbackState.answerResult}
             answeredExercise={feedbackState.answeredExercise}
-            canContinue={session.canContinue}
+            showHearts={attempt.mode === 'standard'}
+            canContinue={session.canContinue || session.isCompleting}
             isCompleting={session.isCompleting}
+            mutationError={session.mutationError?.message ?? null}
             onContinue={session.continueLesson}
           />
         ) : null

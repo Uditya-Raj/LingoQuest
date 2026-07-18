@@ -38,13 +38,13 @@ when its exit checks in `/docs/06_IMPLEMENTATION_PHASES.md` pass.
 |---|---|
 | Product | LingoQuest |
 | Repository state | `INSPECTED` |
-| Current phase | Phase 10B — Five exercise components |
+| Current phase | Phase 10C — Lesson feedback, failure, and results visual pass |
 | Current phase status | `VERIFIED` |
-| Next action | Phase 10C — Lesson feedback, failure, and results visual pass |
-| Recommended model | Claude Opus |
-| Required skill | `frontend-design` |
+| Next action | Phase 10D — Exercise audio and TTS frontend |
+| Recommended model | Claude Sonnet |
+| Required skill | None |
 | Last updated | 2026-07-19 |
-| Updated by | Phase 10B five interactive exercise components |
+| Updated by | Phase 10C feedback/failure/results visual pass |
 | Active blocker | None |
 
 ---
@@ -111,13 +111,13 @@ verified.
 | Learning path visual polish | `VERIFIED` | Phase 9B: winding S-curve, SVG connectors, 4 state hierarchy, unit banners, gamification bar, skill detail, Quest fox, responsive, dark mode. Re-verified with inspected screenshots. |
 | Lesson player shell and state machine | `VERIFIED` | Phase 10A: pure reducer, `useLessonSession` controller, focused layout, header/progress/hearts/exit, answer/feedback/continue/complete orchestration, failed/completed/error surfaces, timed-mode retrieve boundary. |
 | Five exercise renderers | `VERIFIED` | Phase 10B: production `exerciseRenderer` dispatches MC/word-bank/match/fill/type; exact payloads; draft reset; locked during submit/feedback; attempt 143 read-only preserved. |
-| Feedback/failure/completion UI polish | `PARTIAL` | Phase 10A: basic `FeedbackSurface`, failed/completed placeholders; celebratory polish deferred to Phase 10C (Opus + frontend-design). |
+| Feedback/failure/completion UI polish | `VERIFIED` | Phase 10C: dimensional feedback, solution formatting, out-of-hearts modal + refill/retry, results celebration, toasts, reduced motion. |
 | Profile/leaderboard/settings UI | `PARTIAL` | Shell + nav live; page bodies still deferred placeholders (not path/skill). |
 | Content manager UI | `NOT_STARTED` | Placeholder `/admin/content` only. Admin nav omitted until profile exposes `is_content_admin`. |
-| Responsive accessibility | `PARTIAL` | Path/shell/exercises keyboard, focus, reduced-motion, 44px targets, no mobile overflow in Phase 10B screenshots. Full audit in Phase 13. |
-| Dark mode bonus | `PARTIAL` | Theme toggle on settings; path/shell use tokens; lesson dark capture may need theme wiring polish in Phase 14. |
-| Automated test suite | `VERIFIED` | Backend **198 passed** (prior). Frontend Vitest **146 passed** (Phase 10B). |
-| Production builds | `VERIFIED` | Frontend `next build` passed (Phase 10B); backend LingoQuest API on `:8000`. |
+| Responsive accessibility | `PARTIAL` | Lesson feedback/modals inspected at 320/390/1440 + 200% zoom; full audit in Phase 13. |
+| Dark mode bonus | `PARTIAL` | Theme toggle on settings; lesson feedback/results dark captures inspected in Phase 10C. |
+| Automated test suite | `VERIFIED` | Backend **198 passed** (prior). Frontend Vitest **164 passed** (Phase 10C). |
+| Production builds | `VERIFIED` | Frontend `next build` passed (Phase 10C); backend LingoQuest API on `:8000`. |
 | Deployment and persistent SQLite | `NOT_STARTED` | Deferred; deployment spec missing. |
 | README and submission evidence | `NOT_STARTED` | No `README.md` exists. |
 
@@ -127,72 +127,78 @@ verified.
 
 ### Phase
 
-Phase 10B — Five interactive exercise components
+Phase 10C — Lesson feedback, failure, and results visual pass
 
 ### Objective
 
-Replace the Phase 10A production placeholder renderer with five accessible, mode-agnostic
-exercise components that build exact typed answer payloads for the existing lesson state machine.
+Polish the complete standard lesson experience: Check → Feedback → Continue cadence,
+backend-authoritative hearts, out-of-hearts refill/retry, completion results, celebration,
+and toast hierarchy — without changing the Phase 10A state machine or Phase 10B payloads.
 
 ### Model and skill used
 
-**Model:** Claude Sonnet (normal mode)
-**Skill:** None (reused Phase 8C primitives + Phase 10A shell; no redesign)
+**Model:** Claude Opus (normal mode)
+**Skill:** `frontend-design` (loaded and followed for feedback composition, modal hierarchy,
+3D polish, motion, and screenshot-led QA)
 
-### Exact payload contracts implemented
+### Feedback / failure / results work
 
-| Type | Public options | Submit answer |
-|---|---|---|
-| `multiple_choice` | `Array<{ id; text }>` | `{ option_id }` |
-| `translate_word_bank` | `Array<{ id; text }>` | `{ ordered_ids }` |
-| `match_pairs` | `{ left; right }` | `{ pairs: [{ left_id; right_id }] }` |
-| `fill_blank` | `null` (prompt `___`) | `{ text }` |
-| `type_answer` | `null` | `{ text }` |
+| Surface | Behavior |
+|---|---|
+| Correct feedback | Original LingoQuest phrases, success icon, hearts from answer response, Continue |
+| Incorrect feedback | Original phrases, formatted solution (all five types), hearts from response, Continue |
+| Heart loss | Header hearts apply `hearts_remaining` exactly; restrained CSS pulse (hidden under reduced motion) |
+| Out of hearts | Non-dismissible `Modal` + concerned Quest fox; no complete; Practice Coming Soon |
+| Refill | `POST /api/hearts/refill` once; apply returned hearts/gems; then Retry |
+| Retry | `POST /api/skills/{skill_id}/start` → navigate to **new** attempt id only |
+| Completion | `POST .../complete` once; pending “Wrapping up…”; rewards only after `CompletionResponse` |
+| Results | XP medallion, perfect badge (when confirmed), crowns/streak/totals/achievements from response |
+| Toasts | Streak/achievements/refill/errors; results modal remains primary; max 2 visible |
+| Timed boundary | `time_expired` is not treated as out-of-hearts; no timed countdown UI (Phase 10E) |
+| TTS boundary | No playback controls added (Phase 10D) |
 
-Public exercises never expose `correct_answer`. Correctness comes only from answer responses.
+### API endpoints wired
 
-### Components added / wired
+| Endpoint | Use |
+|---|---|
+| `POST /api/lessons/{id}/answer` | Existing controller; feedback renders response fields |
+| `POST /api/lessons/{id}/complete` | Existing controller; results from response |
+| `POST /api/hearts/refill` | Failed modal primary action |
+| `POST /api/skills/{skill_id}/start` | Retry after successful refill (`skill_id` from attempt) |
+
+### Key files
 
 | Path | Purpose |
 |---|---|
-| `components/lesson/exercise-renderer.tsx` | Production dispatcher + draft validity/payload builders |
-| `components/lesson/exercise-frame.tsx` | Shared instruction/prompt/TTS-slot/status frame |
-| `components/lesson/exercise-guards.ts` | Focused runtime option guards |
-| `components/lesson/exercises/multiple-choice-exercise.tsx` | ChoiceTile radio selection + numeric shortcuts |
-| `components/lesson/exercises/word-bank-exercise.tsx` | Ordered word tiles + clear-all |
-| `components/lesson/exercises/match-pairs-exercise.tsx` | Left/right pairing without pointer-only lines |
-| `components/lesson/exercises/fill-blank-exercise.tsx` | Blank prompt + text input + IME-safe Enter |
-| `components/lesson/exercises/type-answer-exercise.tsx` | Free-text answer + IME-safe Enter |
-| `components/lesson/lesson-player.tsx` | Defaults to `exerciseRenderer`; wires `onRequestCheck` |
+| `components/lesson/lesson-feedback-region.tsx` | Feedback sheet + Continue/Finish + mutation errors |
+| `components/lesson/lesson-failed-surface.tsx` | Out-of-hearts modal + refill/retry; timed expiry separate |
+| `components/lesson/lesson-completed-surface.tsx` | Results celebration + return/path/profile |
+| `components/lesson/celebration-burst.tsx` | Decorative sparkles (aria-hidden; reduced-motion static) |
+| `components/lesson/lesson-hearts.tsx` | Heart-loss pulse from response delta |
+| `components/lesson/lesson-player.tsx` | Check↔Continue cadence; completing polish; toast errors |
+| `components/lesson/lesson-layout.tsx` | Hide action bar during feedback; safe-area padding |
+| `components/ui/feedback-surface.tsx` | Dimensional slide-up; reduced-motion opacity |
+| `lib/lesson/format-solution.ts` | Safe five-type solution formatting |
+| `lib/lesson/feedback-copy.ts` | Original correct/incorrect phrases |
+| `stores/session-store.ts` | `applyRefill` from backend response |
+| `scripts/phase10c-feedback-screenshots.mjs` | Screenshot QA (mocked mutations) |
 
-Retained: `placeholder-exercise-renderer.tsx` / `testExerciseRenderer` for legacy/test harnesses only.
-
-### Renderer integration
-
-- Draft owned by `LessonPlayer` (React state only; no Zustand/localStorage persistence)
-- Reset on `resetKey(exercise)` change; preserved across recoverable answer errors
-- Interaction locked while submitting and during feedback; selection preserved until Continue
-- Check disabled until `isDraftValid`; submit uses existing `useLessonSession.submitCurrentAnswer`
-- Focus moves to next prompt heading after Continue (`tabIndex={-1}` on prompt)
-
-### Test counts (146 total frontend)
+### Test counts (164 total frontend)
 
 | Suite | Tests | Coverage |
 |---|---|---|
-| `tests/components/exercise-renderer.test.tsx` | 10 | Dispatcher + all five interactions/payloads |
-| `tests/components/lesson-exercise-journey.test.tsx` | 5 | Full 5-type journey, draft preserve, fail, duplicate Check, feedback lock |
-| `tests/components/attempt-143-readonly.test.tsx` | 1 | Live API skip-safe render of public types |
-| Phase 10A + prior suites | 130 | Regression green |
+| `tests/components/phase10c-feedback-failure-results.test.tsx` | 14 | Feedback, hearts, OOH modal, refill/retry, completion, toasts |
+| `tests/lesson/format-solution.test.ts` | 3 | All five types + malformed + no raw JSON |
+| `tests/stores/session-store.test.ts` | 5 | Includes refill apply |
+| Phase 10B + prior suites | 142 | Regression green |
 
-Fixtures: `tests/fixtures/phase10a.ts`, `tests/fixtures/phase10b.ts`
+### Isolated journeys (mocked HTTP)
 
-### Isolated full exercise journey (mocked HTTP)
-
-1. Render each of five types → build valid draft → submit exact payload — **pass**
-2. Backend feedback → Continue → draft reset → next prompt focused — **pass**
-3. Final exercise → completion orchestration → store completion — **pass**
-4. Wrong answer hearts from response; zero-heart → failed; no completion — **pass**
-5. Mutation error preserves draft; duplicate Check blocked — **pass**
+1. Perfect five-type journey → complete once → exact XP/perfect/results — **pass**
+2. Incorrect answer → solution + hearts from response — **pass**
+3. Zero hearts → terminal modal → no complete → refill once → new attempt id — **pass**
+4. Completion failure → no rewards, recoverable alert — **pass**
+5. Timed expiry ≠ out-of-hearts — **pass**
 
 No mutations against real attempt 143.
 
@@ -201,46 +207,52 @@ No mutations against real attempt 143.
 | Check | Result |
 |---|---|
 | `GET /api/lessons/143` | **200** |
-| `status` | `in_progress` (unchanged before and after screenshots) |
-| `mode` | `standard` |
-| `current_index` | `0` (unchanged after refresh + screenshot pass) |
-| All five exercise types present | **yes** (sequence includes each type) |
-| `correct_answer` in retrieve JSON | **absent** |
-| UI render of each type | Via mocked GET using 143 public exercise objects (no answer POST) |
+| `status` | `in_progress` |
+| `current_index` | `0` |
+| `hearts` | `5` |
+| `correct_answer` in retrieve | **absent** |
+| Exit modal open + cancel | **pass** (screenshot) |
 | Check activated against 143 | **no** |
+| Unchanged after screenshot pass | **yes** (`summary.json`) |
 
 ### Quality gates
 
 | Gate | Result |
 |---|---|
-| `npm run test` | **146 passed** |
+| `npm run test` | **164 passed** |
 | `npm run typecheck` | **pass** |
 | `npm run lint` | **pass** (0 warnings) |
 | `npm run build` | **pass** |
-| `any` / `@ts-ignore` in lesson exercise code | **0** |
+| `any` / `@ts-ignore` in lesson feedback code | **0** |
 | `LingoPath` | **0** |
-| `dangerouslySetInnerHTML` | **0** |
-| Hardcoded API URLs in lesson components | **0** |
-| `correct_answer` in public exercise components | **0** (feedback path only) |
-| Client-side grading / hearts / XP / streak / crown math | **0** |
-| Draft persistence (localStorage/sessionStorage/Zustand) | **0** |
-| API calls inside individual exercise components | **0** |
-| Production placeholder as default renderer | **0** (`exerciseRenderer` is default) |
+| Local XP/hearts/streak/crown calculations | **0** |
+| Optimistic refill values | **0** |
+| Failed-attempt resume | **0** (retry starts new attempt) |
+| Premature TTS / timed expiry UI | **0** |
+| Duplicate completion / auto mutation retry | **0** |
 
 ### Visual viewports inspected
 
-Artifacts: `qa-screenshots/phase10b/` (25 PNGs via `scripts/phase10b-exercise-screenshots.mjs`)
+Artifacts: `qa-screenshots/phase10c/` (19 PNGs via `scripts/phase10c-feedback-screenshots.mjs`)
 
-| Viewport | Themes | Types |
-|---|---|---|
-| 1440×900 | light + dark | all five |
-| 390×844 | light + dark | all five |
-| 320×568 | light | all five |
+| State | Viewports / themes |
+|---|---|
+| Ready + exit cancel | 390 light |
+| Correct feedback | 1440/390/320 light; 1440/390 dark |
+| Incorrect long solution | 390 light |
+| Out of hearts | 1440/390/320 light; 1440/390 dark; 200% zoom |
+| Results (retrieved) | 390 light/dark + reduced-motion |
+| Perfect + achievements | 1440 + 390 light |
 
-Observed: prompt hierarchy, ChoiceTile/WordTile/MatchTile sizing, wrapping, disabled Check until draft, match two-column layout at 320px, fill/type inputs, no horizontal overflow (`overflow=false` for all captures). Attempt 143 remained `in_progress` / index `0` after the pass.
+Observed after Continue-visibility fix: feedback Continue reachable; no horizontal overflow;
+modal usable at 320px; reduced-motion static celebration; toast/modal hierarchy readable.
 
 ### Accessibility verification
 
+- Feedback `aria-live="assertive"`; icon + text (not color alone)
+- Continue focused after feedback; Enter advances when safe
+- Modal focus trap; non-dismissible OOH; background blocked
+- Confetti/sparks `aria-hidden`; reduced-motion alternatives
 - Native buttons/radios/inputs; logical tab order; visible focus on prompt after Continue
 - Accessible instructions + tile add/remove/pair labels (duplicate words distinguished)
 - Touch targets ≥44px (`min-h-11` / ChoiceTile 48px)
@@ -249,19 +261,30 @@ Observed: prompt hierarchy, ChoiceTile/WordTile/MatchTile sizing, wrapping, disa
 - IME-safe Enter on fill/type; no focus steal on ordinary selection
 - Match pairs operable without pointer-drawn lines
 
+### Contract gaps
+
+None blocking. `skill_id` is present on `LessonAttemptResponse` and used for retry start.
+
 ### Remaining risks
 
-- Lesson-route dark theme may not fully apply from `ui-store` alone (captures taken; polish in Phase 14)
-- Timed live countdown still deferred (Phase 10A notice only)
-- Feedback/completion celebration polish → Phase 10C
-- TTS playback → Phase 10D
-- Full a11y audit → Phase 13
+- Lesson-route dark theme may need fuller `ui-store` wiring polish in Phase 14
+- Timed live countdown / expiry UI deferred to Phase 10E (retrieve notice only)
+- TTS playback deferred to Phase 10D
+- Full cross-app a11y audit deferred to Phase 13
+- Profile page still a placeholder; “View profile” from results navigates there honestly
 
 ### Exact next phase
 
-**Phase 10C — Lesson feedback, failure, and results visual pass** (`/docs/06_IMPLEMENTATION_PHASES.md`)
-**Model:** Claude Opus
-**Skill:** `frontend-design`
+**Phase 10D — Exercise audio and TTS frontend** (`/docs/06_IMPLEMENTATION_PHASES.md`)
+**Model:** Claude Sonnet
+**Skill:** None
+
+---
+
+## Phase 10B contract (historical — VERIFIED)
+
+Phase 10B delivered five production exercise renderers with exact payloads, draft locking,
+and attempt 143 read-only preservation. Phase 10C polished feedback/failure/results on top.
 
 ---
 
@@ -732,47 +755,32 @@ for correcting the source document.
 
 ## Files changed in the latest phase
 
-Phase 9A functional responsive learning path:
+Phase 10C lesson feedback / failure / results visual pass:
 
 | File | Change | Reason |
 |---|---|---|
-| `frontend/app/page.tsx` | Replaced | Real learning path via AppShell + LearningPath |
-| `frontend/app/skill/[skillId]/page.tsx` | Replaced | Skill detail with start/resume/timed |
-| `frontend/app/lesson/[attemptId]/page.tsx` | Replaced | Focused handoff (no learner nav); retrieve only |
-| `frontend/app/leaderboard/page.tsx` | Updated | Shell + deferred body |
-| `frontend/app/profile/page.tsx` | Updated | Shell + deferred body |
-| `frontend/app/settings/page.tsx` | Updated | Shell + ThemeToggle |
-| `frontend/app/layout.tsx` | Updated | ToastProvider wrapper |
-| `frontend/app/globals.css` | Updated | Available-node pulse keyframe + reduced-motion |
-| `frontend/components/layout/*` | Created | AppShell, DesktopNav, MobileNav, GamificationBar, LearnerSummaryPanel |
-| `frontend/components/path/*` | Created | LearningPath, UnitSection, UnitBanner, SkillNode, PathConnector |
-| `frontend/components/skill/skill-detail.tsx` | Created | Detail + start/resume/timed with pending/error handling |
-| `frontend/components/lesson/lesson-handoff.tsx` | Created | Temporary retrieve-only lesson screen |
-| `frontend/lib/icons/skill-icons.tsx` | Created | Typed icon map + unknown-key fallback |
-| `frontend/lib/path/current-skill.ts` | Created | Current-skill selection + path offset rhythm |
-| `frontend/hooks/use-learner-shell-data.ts` | Created | Abortable course load into session store |
-| `frontend/hooks/use-reduced-motion.ts` | Created | prefers-reduced-motion hook |
-| `frontend/tests/components/{home-page,learning-path,skill-detail,lesson-handoff}.test.tsx` | Created | Phase 9A focused coverage |
-| `frontend/tests/path/helpers.test.ts` | Created | Current-skill + icon fallback helpers |
-| `frontend/tests/fixtures/phase9a.ts` | Created | Shared API mocks |
-| `frontend/tests/setup.ts` | Updated | scrollIntoView mock |
-| `docs/07_HANDOFF_CURRENT_STATE.md` | Updated | Phase 9A VERIFIED evidence |
+| `frontend/components/lesson/lesson-feedback-region.tsx` | Updated | Cadence, hearts, solution UI, Finish/Continue |
+| `frontend/components/lesson/lesson-failed-surface.tsx` | Updated | OOH modal + refill/retry; timed separate |
+| `frontend/components/lesson/lesson-completed-surface.tsx` | Updated | Results celebration from CompletionResponse |
+| `frontend/components/lesson/celebration-burst.tsx` | Created | Decorative reduced-motion-safe sparks |
+| `frontend/components/lesson/lesson-hearts.tsx` | Updated | Heart-loss pulse from response delta |
+| `frontend/components/lesson/lesson-player.tsx` | Updated | Check/Continue swap; completing; toasts |
+| `frontend/components/lesson/lesson-layout.tsx` | Updated | Hide action bar during feedback |
+| `frontend/components/ui/feedback-surface.tsx` | Updated | Dimensional feedback polish + reduced motion |
+| `frontend/lib/lesson/format-solution.ts` | Updated | Safe structured five-type formatting |
+| `frontend/lib/lesson/feedback-copy.ts` | Created | Original LingoQuest phrases |
+| `frontend/stores/session-store.ts` | Updated | `applyRefill` |
+| `frontend/app/globals.css` | Updated | Celebration + heart-loss keyframes |
+| `frontend/tests/components/phase10c-*.test.tsx` | Created | Feedback/failure/refill/results coverage |
+| `frontend/tests/lesson/format-solution.test.ts` | Created | Solution formatting unit tests |
+| `frontend/scripts/phase10c-feedback-screenshots.mjs` | Created | Screenshot QA (mocked) |
+| `docs/07_HANDOFF_CURRENT_STATE.md` | Updated | Phase 10C VERIFIED evidence |
 
-### Routes completed
+### API endpoints connected (this phase)
 
-- `/` — learning path
-- `/skill/[skillId]` — skill detail / start
-- `/lesson/[attemptId]` — temporary handoff (no shell nav)
-- `/leaderboard`, `/profile`, `/settings` — shell destinations (bodies deferred)
-
-### API endpoints connected
-
-- `GET /api/course`
-- `GET /api/skills/{id}`
-- `POST /api/skills/{id}/start`
-- `POST /api/skills/{id}/start-timed`
-- `GET /api/lessons/{attempt_id}`
-- Learner summary fields from course/skill responses (no local XP/heart/crown math)
+- `POST /api/hearts/refill` (new UI wiring)
+- `POST /api/skills/{id}/start` (retry after refill)
+- Existing answer/complete remain authoritative for feedback/results
 
 ---
 
@@ -782,26 +790,26 @@ Phase 9A functional responsive learning path:
 |---|---|
 | Current branch | `main` |
 | Pre-existing unrelated edits | Preserved |
-| Files changed this phase | Path/shell/skill/handoff + tests + handoff doc |
-| Backend production code | **Unchanged** (server restarted only) |
-| Developer local DB | Smoke created attempt **143** only; not completed |
+| Files changed this phase | Lesson feedback/failure/results + tests + screenshots + handoff |
+| Backend production code | **Unchanged** |
+| Attempt 143 | Read-only; unchanged (`in_progress`, index `0`) |
 
 ---
 
 ## Exact next request for Cursor
 
-Phase 9B is VERIFIED. Use this request next:
+Phase 10C is VERIFIED. Use this request next:
 
 ```text
-Perform LingoQuest Phase 10A: functional lesson attempt shell.
+Perform LingoQuest Phase 10D: exercise audio playback and TTS.
 
-Follow the Common phase protocol. On /lesson/[attemptId], retrieve the attempt from the backend,
-render the current persisted index, progress, hearts and safe terminal states, and create the
-answer -> feedback -> continue -> next -> complete state machine.
+Follow the Common phase protocol. Implement accessible Play/Replay button that uses browser
+speechSynthesis API when tts_text/tts_lang are present, or plays audio_url when available. Prefer
+audio_url over TTS. Never autoplay.
 
-Handle refresh/direct navigation, duplicate-click prevention, request errors, failed status,
-completion result, exit confirmation, and retry after refill. Do not implement the five exercise
-widgets in this subphase beyond a typed renderer boundary.
+Show honest disabled/unavailable state when speechSynthesis is unsupported. Add component tests
+mocking speechSynthesis and verifying text/language selection. Update content-admin forms to expose
+optional tts_text and tts_lang fields. Do not use or copy Duolingo audio.
 ```
 
 **Recommended model:** Claude Sonnet  

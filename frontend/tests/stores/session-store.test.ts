@@ -159,6 +159,20 @@ describe('session store', () => {
     expect(state.learner?.current_streak).toBe(7)
   })
 
+  it('applies refill hearts and gems from the backend response exactly', () => {
+    useSessionStore.getState().setLearner({ ...learner, hearts: 0, gems: 40 })
+    useSessionStore.getState().applyRefill({
+      hearts: 5,
+      max_hearts: 5,
+      gems: 20,
+      gems_spent: 20,
+      next_heart_at: null,
+    })
+
+    expect(useSessionStore.getState().hearts?.hearts).toBe(5)
+    expect(useSessionStore.getState().learner?.gems).toBe(20)
+  })
+
   it('resets to the initial empty state', () => {
     useSessionStore.getState().setProfile(profile)
     useSessionStore.getState().setHearts(hearts)
