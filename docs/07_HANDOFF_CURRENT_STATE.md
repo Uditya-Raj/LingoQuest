@@ -36,15 +36,15 @@ when its exit checks in `/docs/06_IMPLEMENTATION_PHASES.md` pass.
 
 | Field | Current value |
 |---|---|
-| Product | LingoPath (repository: LingoQuest) |
+| Product | LingoQuest (API title); historical docs may still say LingoPath |
 | Repository state | `INSPECTED` |
-| Current phase | Phase 7B — Existing backend API/gamification conformance audit |
+| Current phase | Phase 7C — Backend end-to-end acceptance gate |
 | Current phase status | `VERIFIED` |
-| Next action | Phase 7C — Backend end-to-end acceptance gate |
+| Next action | Phase 8A — Frontend API foundation |
 | Recommended model | Claude Sonnet |
 | Required skill | None |
 | Last updated | 2026-07-18 |
-| Updated by | Phase 7B API/gamification audit + Phase 5B formal closure |
+| Updated by | Phase 7C backend HTTP acceptance gate |
 | Active blocker | None |
 
 ---
@@ -78,6 +78,7 @@ This table tracks whether the planning files are present, not whether the app is
 Phase 1 scaffolding is complete. Backend foundations through Phase 6B are verified. Phase 7A
 schema/seed conformance audit is verified (including migration data-preservation correction).
 Phase 7B API/gamification conformance audit is verified. Phase 5B completion audit formally closed.
+Phase 7C backend end-to-end HTTP acceptance gate is verified.
 
 | Area | Status | Evidence or remaining work |
 |---|---|---|
@@ -111,7 +112,7 @@ Phase 7B API/gamification conformance audit is verified. Phase 5B completion aud
 | Content manager UI | `NOT_STARTED` | Not implemented. |
 | Responsive accessibility | `NOT_STARTED` | Not implemented. |
 | Dark mode bonus | `NOT_STARTED` | Zustand theme store created but no theme implementation. |
-| Automated test suite | `VERIFIED` | **185 passed** (184 prior + 1 populated ca24→head preservation regression). |
+| Automated test suite | `VERIFIED` | **198 passed** (185 prior + **13** Phase 7C HTTP acceptance tests). |
 | Production builds | `VERIFIED` | Both frontend build and backend startup verified (prior phases). |
 | Deployment and persistent SQLite | `NOT_STARTED` | Deferred; deployment spec missing. |
 | README and submission evidence | `NOT_STARTED` | No `README.md` exists. |
@@ -122,29 +123,33 @@ Phase 7B API/gamification conformance audit is verified. Phase 5B completion aud
 
 ### Phase
 
-Phase 7A — Existing backend schema/seed conformance audit (migration data-preservation correction)
+Phase 7C — Backend end-to-end acceptance gate
 
 ### Objective
 
-Correct `b7e3c91f2a04` so a populated pre-6B database upgrades to head with zero data loss;
-add regression coverage; re-verify schema/seed/migration gates.
+Prove the complete backend learning journey through real HTTP API calls against a fresh
+Alembic-migrated and seeded temporary SQLite database. Acceptance gate only — no feature work
+unless a genuine specification defect is exposed.
 
 ### Allowed work
 
-- In-place repair of `b7e3c91f2a04` (pre-release exception; same revision ID)
-- Additive SQLite `ALTER TABLE ADD COLUMN` strategy
-- Mandatory populated ca24→head regression test
-- Schema/migration/seed/backend suite verification
-- Handoff update
+- Acceptance fixture: temp DB → Alembic head → real seed → ASGI HTTP (session-per-request)
+- End-to-end HTTP coverage for standard lesson, hearts/failure/refill, timed success/expiry,
+  profile/leaderboard/achievements, content admin, errors/ownership, concurrency, OpenAPI
+- Production code fixes only for genuine spec defects found by acceptance
+- Handoff update; stop (no frontend)
 
 ### Exit evidence required
 
-- Populated ca24 DB upgrades to head with all 1,420 answers preserved — **passed**
-- Empty DB upgrade to head — **passed**
-- Full backend suite — **185 passed**
-- No `create_all()` under `app/` — **passed**
-- Handoff records root cause, repair exception, recovery status — **passed**
-- Phase 5B formal API/gamification audit — **not closed here** (Phase 7B)
+- Fresh migrate + seed counts / FK check / idempotent reseed — **passed**
+- Standard path→complete→refresh cross-endpoint consistency — **passed**
+- Zero-heart failure, refill, retry, lazy regen — **passed**
+- Timed success (20 XP, no crowns) + expiry boundary — **passed**
+- Profile/leaderboard/achievements + admin TTS/contracts — **passed**
+- Error envelope, ownership, concurrent complete/timed-start — **passed**
+- OpenAPI title “LingoQuest API”; no `correct_answer` on public schemas — **passed**
+- Developer `lingopath.db` untouched — **passed**
+- Full backend suite green — **198 passed**
 
 ---
 
@@ -152,12 +157,12 @@ add regression coverage; re-verify schema/seed/migration gates.
 
 | Date | Category | Command | Result | Notes |
 |---|---|---|---|---|
-| 2026-07-18 | Phase 7A repro | Temp ca24 + 142/1420 seed → upgrade b7e3 (old body) | **answers 1420→0** | Bug confirmed; attempts/progress/XP survived |
-| 2026-07-18 | Phase 7A fix repro | Same path after additive repair | **answers 1420→1420** | attempts/progress/achievements/XP intact; mode=standard |
-| 2026-07-18 | Phase 7A focused | `python -m pytest tests/test_phase7a_data_preservation.py tests/test_phase6b_migration.py tests/test_phase7a_migration.py tests/test_schema.py -q` | **31 passed** | Includes mandatory 1,420-answer preservation test |
-| 2026-07-18 | all backend | `python -m pytest tests/ -q` | **185 passed** | +0 vs prior 184 + mandatory 1,420-answer preservation test already in suite |
-| 2026-07-18 | create_all audit | ripgrep `create_all` under `backend/app/` | **No matches** | Runtime does not use create_all |
-| 2026-07-18 | Phase 7B audit | Full API/gamification conformance review | **PASS** | 1 LOW cosmetic naming issue (fixed); Phase 5B formally closed |
+| 2026-07-18 | Phase 7C focused | `python -m pytest tests/test_phase7c_acceptance.py -q` | **13 passed** | Fresh Alembic+seed HTTP acceptance |
+| 2026-07-18 | all backend | `python -m pytest tests/ -q` | **198 passed** | 185 prior + 13 Phase 7C |
+| 2026-07-18 | Alembic head | `python -m alembic heads` | **c8a1f4e2b9d0 (head)** | Unchanged |
+| 2026-07-18 | Dev DB safety | size/mtime before vs after 7C | **untouched** | 618496 bytes; mtime 2026-07-18T15:42:41Z |
+| 2026-07-18 | Phase 7A focused | `python -m pytest tests/test_phase7a_data_preservation.py tests/test_phase6b_migration.py tests/test_phase7a_migration.py tests/test_schema.py -q` | **31 passed** | Prior evidence |
+| 2026-07-18 | Phase 7B audit | Full API/gamification conformance review | **PASS** | Phase 5B formally closed |
 | 2026-07-18 | schema tests | `python -m pytest tests/test_schema.py -q` | **25 passed** | FK/index/constraint verification after 7B fix |
 
 ---
@@ -226,14 +231,15 @@ Fill the result and test reference after each endpoint group is verified.
 | All five answer shapes | **Verified** | `test_answer_grading.py` + `test_phase5a_api.py` |
 | Attempt ordering/idempotency/conflicts | **Verified** | Phase 5A API suite |
 | Timed answer/expiry | **Implemented** | `test_phase6b_timed_api.py` |
-| Completion transaction | **Implemented** | Phase 5B + Phase 6B timed completion — formal 5B/7B audit still open |
-| Hearts status/refill | **Verified** | `test_phase6_api.py::TestHeartsAPI` |
-| User profile/settings | **Verified** | `test_phase6_api.py::TestProfileAPI` |
-| Leaderboard | **Verified** | `test_phase6_api.py::TestLeaderboardAPI` |
-| Achievements | **Verified** | `test_phase6_api.py::TestAchievementsAPI` |
-| Content management + TTS | **Implemented** | Phase 6 + `test_phase6b_tts_seed.py::TestAdminTTS` |
-| Debug clock safety | **Verified** | Absent when disabled; used for timed expiry |
-| Standard error envelope/status codes | **Extended** | Added `TIME_EXPIRED`; `SKILL_LOCKED` / `INSUFFICIENT_EXERCISES` |
+| Completion transaction | **Verified** | Phase 5B + 6B + Phase 7C HTTP complete/idempotency/concurrency |
+| Hearts status/refill | **Verified** | Phase 6 + Phase 7C zero-heart/refill/regen |
+| User profile/settings | **Verified** | Phase 6 + Phase 7C seed/patch/today XP |
+| Leaderboard | **Verified** | Phase 6 + Phase 7C post-completion rank/XP |
+| Achievements | **Verified** | Phase 6 + Phase 7C earned/locked consistency |
+| Content management + TTS | **Verified** | Phase 6/6B + Phase 7C admin create/edit/TTS/protection |
+| Debug clock safety | **Verified** | Absent when disabled; Phase 7C uses injectable clock |
+| Standard error envelope/status codes | **Verified** | Phase 7C: 400/403/404/409 + ownership |
+| End-to-end HTTP acceptance | **Verified** | `tests/test_phase7c_acceptance.py` — 13 passed |
 
 ---
 
@@ -490,32 +496,48 @@ for correcting the source document.
 
 ## Files changed in the latest phase
 
-Phase 7A migration data-preservation correction:
+Phase 7C backend HTTP acceptance gate:
 
 | File | Change | Reason |
 |---|---|---|
-| `backend/alembic/versions/b7e3c91f2a04_timed_practice_and_tts_columns.py` | Replaced batch_alter rebuild with native ADD COLUMN + CHECKs | Stop CASCADE wipe of exercise_answers |
-| `backend/tests/test_phase7a_data_preservation.py` | Created | Mandatory populated ca24→head regression |
-| `docs/07_HANDOFF_CURRENT_STATE.md` | Updated | Root cause, repair exception, evidence, recovery |
+| `backend/tests/test_phase7c_acceptance.py` | Created | Fresh Alembic+seed ASGI HTTP acceptance suite (13 tests) |
+| `docs/07_HANDOFF_CURRENT_STATE.md` | Updated | Phase 7C VERIFIED evidence and next phase |
 
-Prior Phase 7A schema/seed work (still in tree):
+No production backend code was changed. Acceptance exposed no specification defects.
 
-| File | Change | Reason |
-|---|---|---|
-| `backend/app/models/user.py` | Added `active_course_id` FK + `ix_users_leaderboard` | Spec conformance |
-| `backend/alembic/versions/c8a1f4e2b9d0_add_users_active_course_fk_and_leaderboard_index.py` | Created | Forward migration with FK-off batch rebuild |
-| `backend/app/seed/seed_data.py` | UTC `reference_now` | Seed timestamp conformance |
-| `backend/tests/test_schema.py` | FK/index/no-status tests | Acceptance evidence |
-| `backend/tests/test_phase6b_migration.py` | Head rev + FK/index asserts | Head moved to c8a1 |
-| `backend/tests/test_phase7a_migration.py` | Created | Upgrade-from-6B preservation |
+---
 
-Phase 7B API/gamification audit:
+## Phase 7C acceptance evidence
 
-| File | Change | Reason |
-|---|---|---|
-| `backend/app/main.py` | Changed API title "LingoPath" → "LingoQuest" | Repository name consistency |
-| `docs/07_HANDOFF_CURRENT_STATE.md` | Updated | Phase 7B audit evidence, Phase 5B formal closure |
-| `PHASE_7B_AUDIT_REPORT.md` | Created | Comprehensive audit report with severity-ranked findings |
+### Fresh-database boot
+
+- Temp SQLite → `alembic upgrade head` → revision `c8a1f4e2b9d0`
+- Real seed with `--reference-date 2026-07-18`
+- Counts: attempts **142**, answers **1,420**, user_skill_progress **25**
+- `PRAGMA foreign_keys=ON`; `PRAGMA foreign_key_check` empty
+- Seed idempotent on reseed (counts unchanged)
+- Start/retrieve never expose `correct_answer`
+
+### Workflows verified (HTTP only)
+
+1. Standard: course → skill → start → retrieve → all five types → complete → course/me/leaderboard/achievements refresh; duplicate complete 409; XP once (15 perfect); crown once
+2. Hearts: wrong answers → zero → failed/`out_of_hearts` → start blocked → refill → new attempt; lazy regen via injectable clock
+3. Timed: 120s start; wrong answer no heart loss; 20 XP; no crowns/unlocks; expiry at `expires_at+1s` with `TIME_EXPIRED`; equality boundary still playable
+4. Profile/leaderboard/achievements: seeded Maya; PATCH; invalid 422; post-completion today XP/rank
+5. Admin: tree; five types create; TTS valid/invalid; merged PATCH; active-attempt protection; answers in admin only
+6. Errors/ownership: 400/403/404/409; foreign attempt 404
+7. Concurrency: dual complete → one success; dual timed start → one active
+8. OpenAPI: title “LingoQuest API”; required paths; no public `correct_answer`; no LingoPath in OpenAPI/learner JSON
+
+### Defects found
+
+None. No production code corrections required.
+
+### Remaining risks
+
+- Developer `lingopath.db` still historically wiped (0 answers) — optional `--reset --yes` recovery only; not used by acceptance
+- Deployment / R-17 still deferred
+- Frontend learning UI still `NOT_STARTED` (Phase 8+)
 
 ---
 
@@ -525,35 +547,38 @@ Phase 7B API/gamification audit:
 |---|---|
 | Current branch | `main` |
 | Pre-existing unrelated edits | Preserved |
-| Files that overlap planned phase work | Phase 7A migration/tests/docs only |
-| Developer local DB | **Not reset**; still 142 attempts / 0 answers from historical wipe |
+| Files changed this phase | `test_phase7c_acceptance.py`, handoff only |
+| Developer local DB | **Untouched** (size 618496; mtime unchanged through acceptance suite) |
 
 ---
 
 ## Exact next request for Cursor
 
-Phase 7A is VERIFIED. Phase 7B is VERIFIED. Use this request next:
+Phase 7C is VERIFIED. Use this request next:
 
 ```text
-Perform LingoQuest Phase 7C: backend end-to-end acceptance gate.
+Perform LingoQuest Phase 8A: frontend API and routing foundation.
 
 Read:
 1. .cursor/rules/project-rules.mdc
 2. /CLAUDE.md
 3. /docs/07_HANDOFF_CURRENT_STATE.md
-4. Phase 7C from /docs/06_IMPLEMENTATION_PHASES.md
-5. Requirements acceptance criteria R-01 through R-12
-6. /docs/08_TESTING_ACCEPTANCE.md — backend sections
+4. Phase 8A from /docs/06_IMPLEMENTATION_PHASES.md
+5. /docs/01_ARCHITECTURE.md — frontend layout, state ownership, error architecture
+6. Relevant shared/error shapes from /docs/03_API_SPEC.md
 
-Run the real seeded API through complete workflows: path → skill → start → retrieve → all five
-answer types → complete → profile/path/leaderboard refresh. Also run zero-heart/refill/retry flow
-and one content create/edit validation flow.
+Implement environment-backed typed API client, ApiError, TypeScript contracts, routes,
+providers, loading/error/not-found boundaries, and UI-only Zustand store. Create no final
+screen design yet.
 
-Add/fix tests needed to prove acceptance criteria. Do not start frontend work until the gate is
-green.
+Do not store authoritative hearts, XP, streak, crowns, lock state, correct answers, or attempt
+progress in Zustand. The lesson route must be /lesson/[attemptId].
 
-Update /docs/07_HANDOFF_CURRENT_STATE.md and stop after Phase 7C.
+Update /docs/07_HANDOFF_CURRENT_STATE.md and stop after Phase 8A.
 ```
+
+**Recommended model:** Claude Sonnet  
+**Required skill:** None
 
 ---
 
