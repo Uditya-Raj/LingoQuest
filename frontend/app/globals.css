@@ -299,6 +299,122 @@
   animation: lq-heart-loss 420ms ease-out;
 }
 
+@keyframes lq-welcome-float {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-10px);
+  }
+}
+
+@keyframes lq-welcome-float-slow {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-6px);
+  }
+}
+
+.lq-welcome-float {
+  animation: lq-welcome-float 3.6s ease-in-out infinite;
+}
+
+.lq-welcome-float-slow {
+  animation: lq-welcome-float-slow 4.8s ease-in-out infinite;
+}
+
+.lq-welcome-float-delay {
+  animation: lq-welcome-float 4.2s ease-in-out 0.6s infinite;
+}
+
+/* From shared MascotFox / LandingPage / PhoneScreen animation snippets */
+@keyframes lq-welcome-wiggle {
+  0%,
+  100% {
+    transform: rotate(-6deg);
+  }
+  50% {
+    transform: rotate(10deg);
+  }
+}
+
+@keyframes lq-welcome-bob {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-8px);
+  }
+}
+
+@keyframes lq-welcome-pencil-pulse {
+  0%,
+  100% {
+    transform: rotate(28deg) scale(1);
+  }
+  50% {
+    transform: rotate(28deg) scale(1.06);
+  }
+}
+
+@keyframes lq-welcome-path-dash {
+  to {
+    stroke-dashoffset: -80;
+  }
+}
+
+@keyframes lq-welcome-sparkle {
+  0% {
+    opacity: 0.9;
+    transform: scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(0.2);
+  }
+}
+
+@keyframes lq-welcome-live-pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.55;
+  }
+}
+
+.lq-welcome-mascot-wave {
+  animation: lq-welcome-wiggle 1.5s ease-in-out infinite;
+  transform-origin: 70% 55%;
+}
+
+.lq-welcome-mascot-bob {
+  animation: lq-welcome-bob 3s ease-in-out infinite;
+}
+
+.lq-welcome-pencil-pulse {
+  animation: lq-welcome-pencil-pulse 2.5s ease-in-out infinite;
+  transform-origin: center bottom;
+}
+
+.lq-welcome-path-dash {
+  animation: lq-welcome-path-dash 10s linear infinite;
+}
+
+.lq-welcome-sparkle {
+  animation: lq-welcome-sparkle 0.45s ease-out forwards;
+}
+
+.lq-welcome-live-pulse {
+  animation: lq-welcome-live-pulse 1.4s ease-in-out infinite;
+}
+
 @keyframes lq-timed-critical {
   0%,
   100% {
@@ -315,7 +431,16 @@
   }
 
   .lq-celebration-spark,
-  .lq-heart-loss {
+  .lq-heart-loss,
+  .lq-welcome-float,
+  .lq-welcome-float-slow,
+  .lq-welcome-float-delay,
+  .lq-welcome-mascot-wave,
+  .lq-welcome-mascot-bob,
+  .lq-welcome-pencil-pulse,
+  .lq-welcome-path-dash,
+  .lq-welcome-sparkle,
+  .lq-welcome-live-pulse {
     animation: none !important;
   }
 

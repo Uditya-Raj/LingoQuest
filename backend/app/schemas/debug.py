@@ -26,6 +26,27 @@ class DebugClockAdvanceResponse(BaseModel):
     offset_days: int
 
 
+class DebugClockSetRequest(BaseModel):
+    """POST /api/debug/clock/set request — freeze logical time (E2E / acceptance)."""
+
+    logical_now: str = Field(
+        ...,
+        description="UTC ISO-8601 datetime, e.g. 2026-07-18T00:05:00Z",
+        min_length=10,
+        max_length=40,
+    )
+
+    model_config = {"extra": "forbid"}
+
+
+class DebugClockSetResponse(BaseModel):
+    """POST /api/debug/clock/set response."""
+
+    logical_now: str
+    logical_date: str
+    offset_days: int
+
+
 class DebugClockResetResponse(BaseModel):
     """POST /api/debug/clock/reset response."""
 

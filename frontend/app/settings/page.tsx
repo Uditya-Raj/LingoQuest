@@ -2,7 +2,6 @@
 
 import { AppShell } from '@/components/layout/app-shell'
 import { ComingSoonSection } from '@/components/settings/coming-soon-section'
-import { ContentManagerLink } from '@/components/settings/content-manager-link'
 import { SettingsForm } from '@/components/settings/settings-form'
 import {
   SettingsError,
@@ -55,8 +54,6 @@ export default function SettingsPage() {
             </div>
             <ThemeToggle />
           </SurfaceCard>
-
-          <ContentManagerLink />
 
           <ComingSoonSection />
         </div>

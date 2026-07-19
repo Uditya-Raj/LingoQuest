@@ -152,6 +152,13 @@ export function useContentManager(): UseContentManagerResult {
   )
 
   const applyExercise = useCallback((exercise: AdminExerciseRepresentation) => {
+    if (
+      !exercise ||
+      typeof exercise.id !== 'number' ||
+      typeof exercise.lesson_id !== 'number'
+    ) {
+      return
+    }
     setTree((prev) => {
       if (!prev) return prev
       const next: AdminContentTreeResponse = {

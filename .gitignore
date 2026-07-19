@@ -44,3 +44,10 @@ Thumbs.db
 frontend/tmp-phase9a-screens/
 qa-screenshots/
 
+# Phase 12 Playwright artifacts
+frontend/e2e/.e2e-stack.json
+frontend/e2e-report/
+frontend/test-results/
+frontend/playwright-report/
+frontend/.env.local.e2e-backup
+

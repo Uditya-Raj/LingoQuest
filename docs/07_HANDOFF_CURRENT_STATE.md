@@ -44,8 +44,22 @@ when its exit checks in `/docs/06_IMPLEMENTATION_PHASES.md` pass.
 | Recommended model | Claude Sonnet |
 | Required skill | None |
 | Last updated | 2026-07-19 |
-| Updated by | Phase 11B Content manager |
+| Updated by | Welcome page UI (`/welcome`) |
 | Active blocker | None |
+
+---
+
+## Welcome onboarding screen (UI-only)
+
+Polished pre-dashboard welcome is the site entry at `GET /`.
+Learner path moved to `GET /learn`. Legacy `/welcome` redirects to `/`.
+
+| Path | Role |
+|---|---|
+| `app/page.tsx` | Welcome/onboarding entry |
+| `app/learn/page.tsx` | Learning path dashboard (former `/`) |
+| `app/welcome/page.tsx` | Redirect → `/` |
+| `components/welcome/*` | Welcome UI; CTAs → `/learn` |
 
 ---
 
@@ -168,7 +182,6 @@ merged PATCH, permission and active-attempt conflict handling.
 | `components/admin/editors/*` | MC / word-bank / match-pairs / fill-blank / type-answer |
 | `components/admin/tts-fields.tsx` | TTS pair + explicit Preview (no autoplay) |
 | `components/admin/admin-states.tsx` | Skeleton / error / access denied |
-| `components/settings/content-manager-link.tsx` | Settings entry after successful tree probe only |
 | `hooks/use-content-manager.ts` | Tree load; 403→forbidden; applyExercise |
 | `lib/admin/*` | Option IDs, form state, validation, create/PATCH builders |
 | `scripts/phase11b-*.mjs` | Isolated verify, read-only verify, screenshots |
@@ -189,7 +202,7 @@ Not implemented (API unsupported): delete, reorder bulk, unit/skill/lesson CRUD,
 - `/admin/content` calls `GET /admin/content/tree`
 - Success → manager; `403` → Access denied (not empty tree)
 - No admin flag in localStorage; no username/ID inference
-- Settings shows Content Manager link only after one successful probe
+- Content manager is reached at `/admin/content` only (no Settings entry)
 
 ### Active-attempt protection
 

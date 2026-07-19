@@ -1,7 +1,7 @@
 import { describe, expect, it, vi, beforeEach } from 'vitest'
 import { render, screen, waitFor } from '@testing-library/react'
 
-import HomePage from '@/app/page'
+import HomePage from '@/app/learn/page'
 import { mockCourse } from '@/tests/fixtures/phase9a'
 import { useSessionStore } from '@/stores/session-store'
 
@@ -9,7 +9,7 @@ const getCourseMock = vi.fn()
 
 vi.mock('next/navigation', () => ({
   useRouter: () => ({ push: vi.fn() }),
-  usePathname: () => '/',
+  usePathname: () => '/learn',
 }))
 
 vi.mock('next/link', () => ({

@@ -669,6 +669,14 @@ class TestDebugClockAPI:
             )
             assert bad.status_code == 422
 
+            frozen = await client.post(
+                "/api/debug/clock/set",
+                json={"logical_now": "2026-07-18T00:05:00Z"},
+            )
+            assert frozen.status_code == 200
+            assert frozen.json()["logical_now"] == "2026-07-18T00:05:00Z"
+            assert frozen.json()["logical_date"] == "2026-07-18"
+
             reset = await client.post("/api/debug/clock/reset")
             assert reset.status_code == 200
             assert reset.json()["offset_days"] == 0

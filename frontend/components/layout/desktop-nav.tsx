@@ -23,7 +23,7 @@ export function DesktopNav() {
       )}
     >
       <Link
-        href="/"
+        href="/learn"
         className={cn(
           'mb-6 flex h-12 items-center justify-center gap-1',
           'rounded-lq-lg px-2 font-extrabold text-lq-primary',

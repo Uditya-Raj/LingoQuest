@@ -4,10 +4,13 @@ from datetime import datetime, timezone
 from fastapi import APIRouter, status
 
 from app.core.clock import DebugClock, get_clock, set_clock
+from app.core.errors import DomainError
 from app.schemas.debug import (
     DebugClockAdvanceRequest,
     DebugClockAdvanceResponse,
     DebugClockResetResponse,
+    DebugClockSetRequest,
+    DebugClockSetResponse,
     DebugClockStatusResponse,
 )
 
@@ -56,6 +59,39 @@ async def advance_debug_clock(body: DebugClockAdvanceRequest):
     debug.advance_days(body.days)
     logical = debug.now()
     return DebugClockAdvanceResponse(
+        logical_now=_iso(logical),
+        logical_date=logical.date().isoformat(),
+        offset_days=debug.offset_days,
+    )
+
+
+@router.post(
+    "/clock/set",
+    response_model=DebugClockSetResponse,
+    status_code=status.HTTP_200_OK,
+)
+async def set_debug_clock(body: DebugClockSetRequest):
+    """Freeze the logical clock to an absolute UTC instant (does not change OS time)."""
+    debug = _ensure_debug_clock()
+    raw = body.logical_now.strip()
+    try:
+        if raw.endswith("Z"):
+            dt = datetime.fromisoformat(raw.replace("Z", "+00:00"))
+        else:
+            dt = datetime.fromisoformat(raw)
+    except ValueError as exc:
+        raise DomainError(
+            code="INVALID_DEBUG_CLOCK",
+            message="logical_now must be a valid UTC ISO-8601 datetime",
+            status_code=400,
+        ) from exc
+    if dt.tzinfo is None:
+        dt = dt.replace(tzinfo=timezone.utc)
+    else:
+        dt = dt.astimezone(timezone.utc)
+    debug.set_time(dt)
+    logical = debug.now()
+    return DebugClockSetResponse(
         logical_now=_iso(logical),
         logical_date=logical.date().isoformat(),
         offset_days=debug.offset_days,

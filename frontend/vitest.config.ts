@@ -9,6 +9,8 @@ export default defineConfig({
     include: ['tests/**/*.test.ts', 'tests/**/*.test.tsx', 'lib/**/*.test.ts'],
     setupFiles: ['./tests/setup.ts'],
     clearMocks: true,
+    // Heavy RTL journeys exceed the default 5s under Windows + Next tooling load.
+    testTimeout: 15_000,
   },
   resolve: {
     alias: {

@@ -19,7 +19,8 @@ const viewports = [
 ]
 
 const pages = [
-  { name: 'path', url: '/' },
+  { name: 'welcome', url: '/' },
+  { name: 'path', url: '/learn' },
   { name: 'skill-food', url: '/skill/3' }, // Food — in_progress, attempt 143
   { name: 'skill-available', url: '/skill/4' }, // Family — available
   { name: 'skill-locked', url: '/skill/5' }, // Questions — locked

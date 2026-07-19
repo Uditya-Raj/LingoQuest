@@ -137,7 +137,7 @@ export function SkillDetailView({ skillId }: SkillDetailViewProps) {
           {error?.message ?? 'This skill is not in your active course.'}
         </p>
         <Link
-          href="/"
+          href="/learn"
           className="mt-6 inline-flex min-h-11 items-center font-bold text-lq-primary underline"
         >
           Back to learning path
@@ -175,7 +175,7 @@ export function SkillDetailView({ skillId }: SkillDetailViewProps) {
   return (
     <div className="mx-auto w-full max-w-md space-y-5 pb-28 sm:pb-6">
       <Link
-        href="/"
+        href="/learn"
         className={cn(
           'inline-flex min-h-11 items-center gap-2',
           'rounded-lq-lg px-2 py-1',

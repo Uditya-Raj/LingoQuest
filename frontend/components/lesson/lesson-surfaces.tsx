@@ -51,7 +51,7 @@ export function LessonErrorSurface({
         </Button3D>
       ) : null}
       <Link
-        href="/"
+        href="/learn"
         className="inline-flex min-h-11 items-center font-bold text-lq-primary underline"
       >
         Return to learning path
