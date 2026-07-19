@@ -4,6 +4,7 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 
 import { LEARNER_NAV_ITEMS, isNavItemActive } from '@/components/layout/nav-items'
+import { BrandMark } from '@/components/welcome/brand-mark'
 import { cn } from '@/lib/utils'
 
 export function DesktopNav() {
@@ -23,16 +24,23 @@ export function DesktopNav() {
       )}
     >
       <Link
-        href="/learn"
+        href="/"
         className={cn(
-          'mb-6 flex h-12 items-center justify-center gap-1',
-          'rounded-lq-lg px-2 font-extrabold text-lq-primary',
+          'mb-5 flex w-full flex-col items-center gap-1.5 rounded-lq-lg px-1 py-2',
           'focus-visible:outline-2 focus-visible:outline-lq-border-focus focus-visible:outline-offset-2',
         )}
         aria-label="LingoQuest home"
       >
-        <span aria-hidden="true" className="text-lq-xl tracking-tight">
-          LQ
+        <BrandMark showWordmark={false} size="sm" />
+        <span
+          aria-hidden="true"
+          className={cn(
+            'text-center text-[10px] font-extrabold leading-[1.15] tracking-tight',
+            'text-lq-text-primary',
+          )}
+        >
+          Lingo
+          <span className="block text-lq-success">Quest</span>
         </span>
       </Link>
 

@@ -1,6 +1,7 @@
 'use client'
 
 import type { ReactNode } from 'react'
+import Link from 'next/link'
 
 import { DesktopNav } from '@/components/layout/desktop-nav'
 import { GamificationBar } from '@/components/layout/gamification-bar'
@@ -60,9 +61,13 @@ export function AppShell({
         >
           <div className="mx-auto flex max-w-lq-full flex-col gap-2">
             <div className="flex flex-col gap-1.5 sm:flex-row sm:items-center sm:justify-between sm:gap-3">
-              <p className="truncate text-lq-base font-extrabold text-lq-primary sm:text-lq-lg lg:hidden">
+              <Link
+                href="/"
+                className="truncate text-lq-base font-extrabold text-lq-primary sm:text-lq-lg lg:hidden"
+                aria-label="LingoQuest home"
+              >
                 LingoQuest
-              </p>
+              </Link>
               <GamificationBar
                 learner={learner}
                 loading={learnerLoading}
