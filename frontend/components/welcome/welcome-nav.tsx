@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useId, useRef, useState } from 'react'
+import Link from 'next/link'
 import { ChevronDown } from 'lucide-react'
 
 import { BrandMark } from '@/components/welcome/brand-mark'
@@ -37,13 +38,13 @@ export function WelcomeNav() {
 
   return (
     <header className="relative z-20 flex items-center justify-between gap-3 px-5 pt-5 sm:px-8 lg:px-12">
-      <a
+      <Link
         href="/"
         className="rounded-lq focus-visible:outline-2 focus-visible:outline-lq-border-focus focus-visible:outline-offset-2"
         aria-label="LingoQuest home"
       >
         <BrandMark />
-      </a>
+      </Link>
 
       <div className="flex shrink-0 items-center gap-2 sm:gap-3">
         <WelcomeThemeButton />
