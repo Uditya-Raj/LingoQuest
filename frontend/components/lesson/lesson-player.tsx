@@ -139,7 +139,7 @@ export function LessonPlayer({
   const handleConfirmExit = useCallback(() => {
     cancelActiveLessonAudio()
     setConfirmExitOpen(false)
-    router.push('/')
+    router.push('/learn')
   }, [router])
 
   // Cancel on attempt change, terminal surfaces, and unmount.

@@ -103,7 +103,7 @@ export function LessonCompletedSurface({
 
   const handleReturnToPath = () => {
     useSessionStore.setState({ completion: null, attempt: null })
-    router.push('/')
+    router.push('/learn')
   }
 
   return (

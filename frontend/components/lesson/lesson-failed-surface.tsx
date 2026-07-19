@@ -50,7 +50,7 @@ export function LessonFailedSurface({
     gemBalance === undefined ? true : gemBalance >= REFILL_GEM_COST
 
   const handleReturnToPath = useCallback(() => {
-    router.push('/')
+    router.push('/learn')
   }, [router])
 
   const handleRefill = useCallback(() => {

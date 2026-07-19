@@ -127,7 +127,7 @@ export function LessonTimedCompletedSurface({
   const handleReturnToPath = useCallback(() => {
     cancelActiveLessonAudio()
     useSessionStore.setState({ completion: null, attempt: null })
-    router.push('/')
+    router.push('/learn')
   }, [router])
 
   const handleRetryTimed = useCallback(() => {

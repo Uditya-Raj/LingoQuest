@@ -7,6 +7,7 @@ import {
   useRef,
   type ReactNode,
 } from 'react'
+import { createPortal } from 'react-dom'
 import { AnimatePresence, motion } from 'motion/react'
 import { cn } from '@/lib/utils'
 
@@ -37,6 +38,7 @@ export const Modal = forwardRef<HTMLDivElement, ModalProps>(
   ) {
     const dialogRef = useRef<HTMLDivElement>(null)
     const previousFocusRef = useRef<HTMLElement | null>(null)
+    const portalReady = typeof document !== 'undefined'
 
     const handleClose = useCallback(() => {
       if (dismissible && onClose) {
@@ -113,14 +115,13 @@ export const Modal = forwardRef<HTMLDivElement, ModalProps>(
       lg: 'max-w-lg',
     }
 
-    return (
+    const overlay = (
       <AnimatePresence>
         {open && (
           <div
             className="fixed inset-0 flex items-center justify-center p-4"
             style={{ zIndex: 'var(--lq-z-modal)' }}
           >
-            {/* Backdrop */}
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
@@ -131,12 +132,16 @@ export const Modal = forwardRef<HTMLDivElement, ModalProps>(
               aria-hidden="true"
             />
 
-            {/* Dialog */}
             <motion.div
               ref={(node) => {
-                (dialogRef as React.MutableRefObject<HTMLDivElement | null>).current = node
+                ;(
+                  dialogRef as React.MutableRefObject<HTMLDivElement | null>
+                ).current = node
                 if (typeof ref === 'function') ref(node)
-                else if (ref) (ref as React.MutableRefObject<HTMLDivElement | null>).current = node
+                else if (ref)
+                  (
+                    ref as React.MutableRefObject<HTMLDivElement | null>
+                  ).current = node
               }}
               role="dialog"
               aria-modal="true"
@@ -146,7 +151,12 @@ export const Modal = forwardRef<HTMLDivElement, ModalProps>(
               initial={{ opacity: 0, scale: 0.95, y: 20 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.95, y: 20 }}
-              transition={{ type: 'spring', stiffness: 350, damping: 25, mass: 1 }}
+              transition={{
+                type: 'spring',
+                stiffness: 350,
+                damping: 25,
+                mass: 1,
+              }}
               className={cn(
                 'relative w-full',
                 'bg-lq-bg-surface rounded-lq-xl',
@@ -165,5 +175,9 @@ export const Modal = forwardRef<HTMLDivElement, ModalProps>(
         )}
       </AnimatePresence>
     )
+
+    // Portal to body so sticky lesson chrome cannot pin the dialog off-center.
+    if (!portalReady) return null
+    return createPortal(overlay, document.body)
   },
 )

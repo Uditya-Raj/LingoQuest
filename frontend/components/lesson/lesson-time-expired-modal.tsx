@@ -40,7 +40,7 @@ export function LessonTimeExpiredModal({
   const handleReturnToPath = useCallback(() => {
     cancelActiveLessonAudio()
     useSessionStore.setState({ attempt: null, completion: null })
-    router.push('/')
+    router.push('/learn')
   }, [router])
 
   const handleRetryTimed = useCallback(() => {
