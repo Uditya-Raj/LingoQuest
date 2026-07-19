@@ -1,14 +1,24 @@
-/** Content admin placeholder — Phase 8A route boundary only. */
+'use client'
+
+import { ContentManager } from '@/components/admin/content-manager'
+import { AppShell } from '@/components/layout/app-shell'
+import { useLearnerShellData } from '@/hooks/use-learner-shell-data'
+import { useSessionStore } from '@/stores/session-store'
+
+/**
+ * Content administration — permission is established by GET /admin/content/tree.
+ * Do not infer admin access from username, seed data, or localStorage.
+ */
 export default function AdminContentPage() {
+  const shell = useLearnerShellData()
+  const learner = useSessionStore((s) => s.learner)
+
   return (
-    <main className="flex min-h-screen flex-col items-center justify-center p-8">
-      <div className="max-w-lg text-center">
-        <h1 className="mb-3 text-2xl font-bold">Content Admin</h1>
-        <p className="text-gray-600">
-          Placeholder for <code>/admin/content</code>. Not implemented in Phase
-          8A.
-        </p>
-      </div>
-    </main>
+    <AppShell
+      learner={learner}
+      learnerLoading={shell.status === 'loading'}
+    >
+      <ContentManager />
+    </AppShell>
   )
 }

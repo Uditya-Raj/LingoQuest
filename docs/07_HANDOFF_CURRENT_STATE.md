@@ -38,13 +38,13 @@ when its exit checks in `/docs/06_IMPLEMENTATION_PHASES.md` pass.
 |---|---|
 | Product | LingoQuest |
 | Repository state | `INSPECTED` |
-| Current phase | Phase 10E — Timed-practice frontend flow |
+| Current phase | Phase 11B — Content manager |
 | Current phase status | `VERIFIED` |
-| Next action | Phase 11A — Profile, leaderboard, achievements, and settings |
+| Next action | Phase 12 — Required-feature end-to-end gate |
 | Recommended model | Claude Sonnet |
 | Required skill | None |
 | Last updated | 2026-07-19 |
-| Updated by | Phase 10E Timed Practice frontend |
+| Updated by | Phase 11B Content manager |
 | Active blocker | None |
 
 ---
@@ -114,12 +114,12 @@ verified.
 | Feedback/failure/completion UI polish | `VERIFIED` | Phase 10C: dimensional feedback, solution formatting, out-of-hearts modal + refill/retry, results celebration, toasts, reduced motion. |
 | Exercise audio / browser TTS | `VERIFIED` | Phase 10D: Play/Replay via Speech Synthesis; audio_url preferred when present; lifecycle cancel; all five types via ExerciseFrame. |
 | Timed practice frontend | `VERIFIED` | Phase 10E: expires_at countdown, GET adjudication, five exercises, timed results, time-expired modal, standard regression. |
-| Profile/leaderboard/settings UI | `PARTIAL` | Shell + nav live; page bodies still deferred placeholders (not path/skill). |
-| Content manager UI | `NOT_STARTED` | Placeholder `/admin/content` only. Admin API already exposes TTS fields (Phase 7C); form UI remains Phase 11B. |
-| Responsive accessibility | `PARTIAL` | Timed + lesson UI inspected at 320/390/1280 + 200% zoom; full audit in Phase 13. |
-| Dark mode bonus | `PARTIAL` | Theme toggle on settings; timed critical dark capture taken in Phase 10E (polish may remain for Phase 14). |
-| Automated test suite | `VERIFIED` | Backend timed journeys **16 passed** (7C+6B subset). Frontend Vitest **216 passed** (Phase 10E). |
-| Production builds | `VERIFIED` | Frontend `next build` passed (Phase 10E); backend LingoQuest API on `:8000`. |
+| Profile/leaderboard/settings UI | `VERIFIED` | Phase 11A: API-backed `/profile`, `/leaderboard`, `/settings`; achievements on profile; PATCH display_name/daily_goal_xp; Coming Soon placeholders. |
+| Content manager UI | `VERIFIED` | Phase 11B: `/admin/content` tree + five exercise editors; create/PATCH; TTS preview; 403/409; Settings permission probe link; 253 frontend tests. |
+| Responsive accessibility | `PARTIAL` | Admin + profile/leaderboard/settings inspected at 320/1440 + 200% zoom; full audit in Phase 13. |
+| Dark mode bonus | `PARTIAL` | ThemeToggle on settings; admin dark capture taken (polish may remain for Phase 14). |
+| Automated test suite | `VERIFIED` | Backend content-admin API **6 passed**. Frontend Vitest **253 passed** (Phase 11B). |
+| Production builds | `VERIFIED` | Frontend `next build` passed (Phase 11B); `/admin/content` 18.6 kB route; backend on `:8000`. |
 | Deployment and persistent SQLite | `NOT_STARTED` | Deferred; deployment spec missing. |
 | README and submission evidence | `NOT_STARTED` | No `README.md` exists. |
 
@@ -129,152 +129,177 @@ verified.
 
 ### Phase
 
-Phase 10E — Timed-practice frontend flow
+Phase 11B — Content manager
 
 ### Objective
 
-Complete backend-authoritative Timed Practice using the shared five exercise renderers, with an
-`expires_at` presentation countdown, GET-based expiry adjudication, timed success results (20 XP),
-and a distinct time-expired terminal modal — without redesigning the standard lesson player.
+Replace `/admin/content` placeholder with a functional content manager backed by the existing
+administration API: tree browse, exercise create/edit for all five contracts, TTS fields,
+merged PATCH, permission and active-attempt conflict handling.
 
 ### Model and skill used
 
-**Model:** Claude Sonnet (normal mode)
-**Skill:** None (reused Phase 8C primitives + Phase 10A–10D lesson composition)
+**Model:** Cursor Grok / Claude Sonnet tier (contract-heavy; no Max/Opus)
+**Skill:** None (reused Phase 8C tokens/primitives; no redesign)
 
-### Timed API contracts inspected (no invention)
+### Admin API inspected (no invention; OpenAPI matches implementation)
 
-| Field | Source | Notes |
+| Method | Path | Behavior |
 |---|---|---|
-| `mode` | start-timed / GET attempt | `"timed"` \| `"standard"` |
-| `expires_at` | start-timed / GET | UTC ISO; absolute expiry |
-| `remaining_seconds` | start-timed / GET | Server floor countdown; used for skew only |
-| `status` | GET / answer / complete | `in_progress` \| `completed` \| `failed` |
-| `failure_reason` | terminal / TIME_EXPIRED details | `time_expired` \| `out_of_hearts` |
-| `hearts` / `hearts_remaining` | GET / answer | Displayed; timed wrong answers do not consume |
-| `mistakes_count` | GET / answer | Increments on wrong answers in both modes |
-| Completion XP | POST complete | Timed: fixed **20** (`perfect_bonus=0`) |
-| Equality | Backend `_is_timed_expired` | `now == expires_at` playable; `now > expires_at` expired |
+| `GET` | `/api/admin/content/tree` | Ordered courses → units → skills → lessons → admin exercises (`correct_answer` included) |
+| `POST` | `/api/admin/exercises` | Create exercise; `201`; contract + TTS validation |
+| `PATCH` | `/api/admin/exercises/{id}` | Merged patch (`exclude_unset`); full contract revalidation |
 
-**Adjudication:** `GET /api/lessons/{attempt_id}` (also answer/complete) fails expired attempts.
-No `server_now` or dedicated expiry endpoint. **No contract gap** — display zero triggers GET.
+**Creatable/editable entities:** exercises only. Course/unit/skill/lesson are browse-only.
+**Removal:** `is_active: false` (no delete endpoint).
+**Errors:** `403 CONTENT_ADMIN_REQUIRED`, `400 INVALID_EXERCISE_CONTRACT`,
+`409 CONTENT_IN_ACTIVE_ATTEMPT`, `409 EXERCISE_ORDER_CONFLICT`, `404` lesson/exercise.
+**TTS:** both `tts_text`+`tts_lang` or both null; blank/partial/invalid BCP 47 rejected.
+**No contract conflict** between `docs/03_API_SPEC.md` and backend routers/schemas/service.
 
-### Timer architecture
-
-| Piece | Role |
-|---|---|
-| `lib/lesson/timed-clock.ts` | Pure UTC parse, skew, remaining, phases, threshold announce helpers |
-| `hooks/use-timed-lesson-clock.ts` | Single 250ms interval; absolute recalculation; cleanup on unmount/attempt change |
-| `components/lesson/timed-countdown.tsx` | `role="timer"`, tabular digits, warning/critical/checking/expired cues |
-| `useLessonSession.checkExpiry` | GET attempt; dispatch `TIME_EXPIRED` only on backend failure |
-
-Rules: no fresh 120s on mount; no localStorage countdown; ticks never mutate the attempt;
-background-tab jumps catch up via absolute `expires_at`.
-
-### Backend-authority behavior
-
-- Display `0:00` does **not** locally fail the attempt.
-- Brief `checking_expiry` + “Checking time…” / “Time is being checked” while GET runs.
-- Terminal only after backend `status=failed` + `failure_reason=time_expired` (or `TIME_EXPIRED` on answer/complete).
-- In-progress at equality preserves playability.
-- No fabricated answers or completion requests for expiry.
-
-### Threshold / accessibility policy
-
-Announce once at 60 / 30 / 10 / 5 seconds; seed passed thresholds on refresh so they do not replay.
-Visual urgency uses icon + “Hurry!” / “Almost up” (not color alone). Critical pulse respects
-reduced motion. Timer sticky in header above mobile keyboard.
-
-### Timed success and expiry UI
-
-| Surface | Behavior |
-|---|---|
-| `LessonTimedCompletedSurface` | “Timed Practice complete”; exact response XP; no perfect/crown/unlock UI; streak/achievements only from response; contract-violation alert if `perfect_bonus` or unlocks returned |
-| `LessonTimeExpiredModal` | Distinct from out-of-hearts; no XP; no refill; Retry → `startTimedPractice`; Return to path |
-| Header (timed) | Exit + progress + countdown + Timed Practice label; hearts hidden |
-
-### Standard-mode regression
-
-- Hearts header + loss animation remain for standard.
-- Out-of-hearts modal unchanged.
-- No timer on standard lessons.
-- Attempt **143** read-only: `status=in_progress`, `current_index=0`, `mode=standard`, no `correct_answer`.
-
-### TTS integration
-
-Cancel on timed terminal (`failed`/`completed`/`completing`), expired modal mount, timed retry,
-and exit. Countdown ticks do not cancel audio. TTS remains on all five timed exercises (Play visible).
-
-### Key files
+### Routes / components
 
 | Path | Purpose |
 |---|---|
-| `frontend/lib/lesson/timed-clock.ts` | Pure countdown helpers |
-| `frontend/hooks/use-timed-lesson-clock.ts` | Presentation clock controller |
-| `frontend/hooks/use-lesson-session.ts` | `checkExpiry` + `TIME_EXPIRED` handling |
-| `frontend/lib/lesson/session-state-machine.ts` | `TIME_EXPIRED` transition |
-| `frontend/components/lesson/timed-countdown.tsx` | Countdown UI |
-| `frontend/components/lesson/lesson-header.tsx` | Timed vs standard header |
-| `frontend/components/lesson/lesson-player.tsx` | Integration; blocks interaction while checking |
-| `frontend/components/lesson/lesson-timed-completed-surface.tsx` | Timed results |
-| `frontend/components/lesson/lesson-time-expired-modal.tsx` | Time-expired terminal |
-| `frontend/tests/lesson/timed-clock.test.ts` | Pure clock / boundary / thresholds |
-| `frontend/tests/hooks/use-timed-lesson-clock.test.ts` | Hook authority + cleanup |
-| `frontend/tests/components/phase10e-timed-practice.test.tsx` | Mode UI / completion / expiry |
-| `frontend/scripts/phase10e-timed-screenshots.mjs` | Visual QA (API mocked; no DB mutation) |
+| `app/admin/content/page.tsx` | Content manager shell; permission via tree GET |
+| `components/admin/content-manager.tsx` | Layout, selection, unsaved guard, mobile panes |
+| `components/admin/content-tree.tsx` | `role="tree"` hierarchy; TTS/inactive cues |
+| `components/admin/exercise-editor.tsx` | Create/edit orchestration, PATCH/create submit |
+| `components/admin/editors/*` | MC / word-bank / match-pairs / fill-blank / type-answer |
+| `components/admin/tts-fields.tsx` | TTS pair + explicit Preview (no autoplay) |
+| `components/admin/admin-states.tsx` | Skeleton / error / access denied |
+| `components/settings/content-manager-link.tsx` | Settings entry after successful tree probe only |
+| `hooks/use-content-manager.ts` | Tree load; 403→forbidden; applyExercise |
+| `lib/admin/*` | Option IDs, form state, validation, create/PATCH builders |
+| `scripts/phase11b-*.mjs` | Isolated verify, read-only verify, screenshots |
 
-### Test counts (216 total frontend)
+### Supported operations
+
+- Browse full content tree (backend order preserved)
+- Create exercise under a lesson (all five types)
+- Edit exercise via dirty-field merged PATCH
+- Toggle `is_active` (supported removal)
+- TTS complete-pair edit + browser Preview
+- Metadata JSON advanced editor (invalid JSON blocks save)
+
+Not implemented (API unsupported): delete, reorder bulk, unit/skill/lesson CRUD, publish.
+
+### Permission behavior
+
+- `/admin/content` calls `GET /admin/content/tree`
+- Success → manager; `403` → Access denied (not empty tree)
+- No admin flag in localStorage; no username/ID inference
+- Settings shows Content Manager link only after one successful probe
+
+### Active-attempt protection
+
+- Frontend preserves draft on `409 CONTENT_IN_ACTIVE_ATTEMPT`
+- Clear conflict summary + Keep draft / Retry save
+- No false success toast; no attempt mutation to force edits
+
+### Test counts (253 total frontend)
 
 | Suite | Tests | Coverage |
 |---|---|---|
-| Phase 10E timed suites | ~28 | Clock, hook, UI, TIME_EXPIRED, regressions |
-| Prior (incl. 10D) | ~188 | Green |
+| `phase11b-content-manager.test.tsx` | 11 | Tree, 403, retry, editors, create payload, 409 draft, unsaved guard, session boundary, TTS/fill validation, word-bank controls |
+| `admin-patch.test.ts` | 5 | Create payloads, omit vs null, dirty, TTS/dangling, duplicate words |
+| `admin-option-id.test.ts` | 3 | Unique IDs, not indices/text |
+| Prior | 234 | Still green |
+
+Backend: `pytest tests/test_phase6_api.py::TestContentAdminAPI -q` → **6 passed**.
 
 ### Quality gates
 
 | Command | Result |
 |---|---|
-| `npm run test` | **216 passed** |
+| `npm run test` | **253 passed** |
 | `npm run typecheck` | pass |
 | `npm run lint` | pass (0 warnings/errors) |
-| `npm run build` | pass |
+| `npm run build` | pass (`/admin/content` included) |
 
-### Isolated backend journeys
+Anti-pattern search: no `@ts-ignore` / `LingoPath` / invented admin endpoints / hardcoded admin
+identity / admin answers in Zustand/localStorage / optimistic create-edit success / array-index
+option IDs / Duolingo audio suggestions / delete controls / remaining placeholder page.
 
-`pytest tests/test_phase7c_acceptance.py::TestTimedPracticeJourney tests/test_phase6b_timed_api.py -q`
-→ **16 passed** on isolated migrated/seeded DBs:
+### Isolated backend verification
 
-- Successful timed: wrong answer keeps hearts; complete → exactly 20 XP; no crown/unlock change
-- Expiry + boundary: equality playable; after expiry → `time_expired`; no XP; hearts unchanged
-- Refresh preserves `expires_at` / order / remaining
+`node frontend/scripts/phase11b-isolated-admin-verify.mjs` on temp migrated+seeded DB:
 
-### Attempt 143 read-only
+- Tree load Spanish
+- Create + prompt-only PATCH for all five types (IDs 61–65); omitted fields preserved
+- Partial TTS → `400 INVALID_EXERCISE_CONTRACT`
+- Active-attempt PATCH → `409 CONTENT_IN_ACTIVE_ATTEMPT`; attempt stayed `in_progress`
+- Learner retrieve excluded `correct_answer`
+- Temp DB discarded (development DB not mutated)
 
-`GET /api/lessons/143` → `status=in_progress`, `current_index=0`, `mode=standard`, no public
-`correct_answer`. Not mutated by Phase 10E.
+Note: isolated seed resumes attempt **143** when starting skill 3; conflict check only PATCHed
+an exercise (attempt answers untouched). Development attempt 143 was not used for mutations.
+
+### Real-backend read-only verification
+
+Against development API (`:8000`) — **no POST/PATCH**:
+
+| Check | Result |
+|---|---|
+| `GET /api/admin/content/tree` | 200; 1 course, 3 units, 5 skills, 5 lessons, 60 exercises |
+| Five types present | MC 15, WB 10, MP 10, FB 10, TA 15 |
+| TTS pairs | 16 exercises with both fields |
+| Admin includes `correct_answer` | yes |
+| Attempt **143** | Unchanged `in_progress` before and after tree load |
 
 ### Screenshot states / viewports
 
-`qa-screenshots/phase10e/`: normal 1280 light; warning 390; critical 320 dark; checking/0:00 1280;
-expired modal 390; success+achievement 1280; reduced-motion critical 390; 200% zoom 360.
-All `overflow=false`.
+`qa-screenshots/phase11b/` (14 captures, all `overflow=false`):
 
-### Contract gap / correction
+- Desktop tree, five editors (MC/WB/MP/FB/TA+TTS), unsaved modal, dark
+- Mobile 320 tree / lesson detail / MC editor
+- 200% zoom match-pairs
+- Access denied (403 mock), active-attempt conflict (409 mock)
 
-None. `remaining_seconds` + `expires_at` exist; GET adjudicates expiry.
+Inspected: selected treeitem ring beyond color; admin-only answer labels; sticky save does not
+hide conflict banner; match-pair selects keyboard-usable; no horizontal overflow.
+
+### Accessibility results
+
+- Content tree `role="tree"` / `treeitem` with `aria-selected` + keyboard activate
+- Form labels; array controls named (Move up/down, Remove option N, pair selects)
+- Error summary `role="alert"` + focus; save status `role="status"`
+- Unsaved `Modal` focus trap; TTS Preview no autoplay; min-h-11 controls
+- Correct-answer regions labeled administrator-only
+
+### Contract gaps
+
+None material vs admin API. Unit/skill/lesson create-edit not exposed by backend (correctly
+browse-only in UI).
 
 ### Remaining risks
 
-- Brief `checking_expiry` flash is hard to screenshot (returns quickly when still in_progress)
-- Header “Timed” badge + countdown can feel tight at 320px (no overflow; polish in Phase 13/14)
-- Profile/leaderboard/settings bodies still deferred (Phase 11A)
-- Content-admin forms deferred (Phase 11B)
+- Full responsive/a11y audit remains Phase 13; final visual polish Phase 14
+- Next.js “N” badge may appear in Playwright captures (dev overlay)
+- Type change during edit is discouraged in UI (backend allows it only with full contract)
+- Settings permission probe adds one tree GET for admins only
 
 ### Exact next phase
 
-**Phase 11A — Profile, leaderboard, achievements, and settings** (`/docs/06_IMPLEMENTATION_PHASES.md`)
+**Phase 12 — Required-feature end-to-end gate** (`/docs/06_IMPLEMENTATION_PHASES.md`)
 **Model:** Claude Sonnet
-**Skill:** None (reuse Phase 8C primitives)
+**Skill:** None
+
+---
+
+## Phase 11A contract (historical — VERIFIED)
+
+Phase 11A delivered API-backed `/profile`, `/leaderboard`, `/settings` with achievements gallery,
+PATCH display_name/daily_goal_xp, theme toggle, and Coming Soon placeholders. Evidence: 234
+frontend tests at completion; attempt 143 read-only; `qa-screenshots/phase11a/`.
+
+---
+
+## Phase 10E contract (historical — VERIFIED)
+
+Phase 10E delivered Timed Practice countdown, GET expiry adjudication, timed results (20 XP),
+and time-expired modal. Evidence: 216 frontend tests at completion; attempt 143 read-only;
+`qa-screenshots/phase10e/`.
 
 ---
 
@@ -802,25 +827,25 @@ Phase 10C lesson feedback / failure / results visual pass:
 |---|---|
 | Current branch | `main` |
 | Pre-existing unrelated edits | Preserved |
-| Files changed this phase | Exercise audio/TTS hooks + control + tests + screenshots + handoff |
+| Files changed this phase | Profile/leaderboard/settings UI, hooks, session `applyUserPatch`, tests, screenshots, handoff |
 | Backend production code | **Unchanged** |
-| Attempt 143 | Read-only; unchanged (`in_progress`, index `0`) |
+| Attempt 143 | Read-only; unchanged (`in_progress`, index `0`, `mode=standard`) |
 
 ---
 
 ## Exact next request for Cursor
 
-Phase 10D is VERIFIED. Use this request next:
+Phase 11B is VERIFIED. Use this request next:
 
 ```text
-Perform LingoQuest Phase 10E: timed-practice frontend flow.
+Perform LingoQuest Phase 12: required-feature acceptance gate.
 
-Follow the Common phase protocol. Add timed-practice start option on unlocked skill screen. Display
-countdown timer using backend remaining_seconds. Handle time-expired failure modal. Show timed
-completion results with fixed 20 XP. Support refresh/resume with timer recovery. Implement
-reduced-motion alternative for timer. Label as "Timed Practice."
+Follow the Common phase protocol. Run every MUST acceptance workflow against the real frontend,
+backend and seeded SQLite database. Add/fix automated tests and manually verify browser flows at
+desktop and mobile baseline.
 
-Preserve standard-mode lesson shell. Do not consume normal hearts display in timed mode.
+Build a requirement-to-evidence table in the handoff. Fix in-scope failures one category at a
+time. Do not start optional bonuses while any MUST item is red.
 ```
 
 **Recommended model:** Claude Sonnet  

@@ -173,6 +173,26 @@ describe('session store', () => {
     expect(useSessionStore.getState().learner?.gems).toBe(20)
   })
 
+  it('applies PATCH /user/me fields exactly without recomputing progress', () => {
+    useSessionStore.getState().setLearner(learner)
+    useSessionStore.getState().setProfile(profile)
+    useSessionStore.getState().applyUserPatch({
+      display_name: 'Maya Quest',
+      daily_goal_xp: 30,
+      today_xp: 10,
+      daily_goal_progress: 0.3333,
+    })
+
+    const state = useSessionStore.getState()
+    expect(state.learner?.display_name).toBe('Maya Quest')
+    expect(state.learner?.daily_goal_xp).toBe(30)
+    expect(state.learner?.today_xp).toBe(10)
+    expect(state.learner?.daily_goal_progress).toBe(0.3333)
+    expect(state.learner?.total_xp).toBe(340)
+    expect(state.profile?.user.display_name).toBe('Maya Quest')
+    expect(state.profile?.stats.daily_goal_xp).toBe(30)
+  })
+
   it('resets to the initial empty state', () => {
     useSessionStore.getState().setProfile(profile)
     useSessionStore.getState().setHearts(hearts)

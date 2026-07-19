@@ -16,7 +16,7 @@ import type {
   CompletionResponse,
   LessonAttemptResponse,
 } from '@/lib/contracts/lesson'
-import type { ProfileResponse } from '@/lib/contracts/user'
+import type { ProfileResponse, UserPatchResponse } from '@/lib/contracts/user'
 
 export type SessionRequestStatus = 'idle' | 'loading' | 'error'
 
@@ -39,6 +39,7 @@ export interface SessionState {
     next_heart_at: string | null
   }) => void
   applyRefill: (payload: HeartsRefillResponse) => void
+  applyUserPatch: (payload: UserPatchResponse) => void
   setCompletion: (completion: CompletionResponse) => void
   setLoading: () => void
   setError: (error: Pick<ApiError, 'status' | 'code' | 'message'>) => void
@@ -147,6 +148,41 @@ export const useSessionStore = create<SessionState>((set) => ({
               max_hearts: payload.max_hearts,
               next_heart_at: payload.next_heart_at,
               gems: payload.gems,
+            },
+      status: 'idle',
+      error: null,
+    })),
+
+  /**
+   * Apply PATCH /user/me response fields exactly — no local goal math.
+   */
+  applyUserPatch: (payload) =>
+    set((state) => ({
+      learner:
+        state.learner === null
+          ? null
+          : {
+              ...state.learner,
+              display_name: payload.display_name,
+              daily_goal_xp: payload.daily_goal_xp,
+              today_xp: payload.today_xp,
+              daily_goal_progress: payload.daily_goal_progress,
+            },
+      profile:
+        state.profile === null
+          ? null
+          : {
+              ...state.profile,
+              user: {
+                ...state.profile.user,
+                display_name: payload.display_name,
+              },
+              stats: {
+                ...state.profile.stats,
+                daily_goal_xp: payload.daily_goal_xp,
+                today_xp: payload.today_xp,
+                daily_goal_progress: payload.daily_goal_progress,
+              },
             },
       status: 'idle',
       error: null,
